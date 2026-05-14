@@ -496,3 +496,88 @@ Unverified visual items (no headless browser):
 ### [NEEDS DECISION] HTTP context in audit rows
 Option (b) for H-05 was applied: the `Audit` middleware now runs on all auth+verified routes and writes `http.request` audit rows for state-changing verbs. This means each mutating HTTP request produces 1 `http.request` row (middleware) + 1 model-event row (trait). Whether this double-row pattern is acceptable for HTTP context capture vs. merging HTTP context into the trait's row is a product decision before Phase 2.
 
+---
+
+## Phase-2 MVP — M02 Policy + Filament Admin
+
+**Date:** 2026-05-14
+**Agent:** Backend Engineer
+
+### New Package Installs
+
+| Package | Version | Notes |
+|---|---|---|
+| `filament/filament` | v5.6.3 | Filament 3.x does NOT support Laravel 13 (`illuminate/auth` conflict). Filament v5 is the correct choice for Laravel 13. |
+| `barryvdh/laravel-dompdf` | ^3.0 | Watermarked PDF rendering for Policy module |
+
+### Filament: Laravel 13 Compatibility
+
+Filament 3.x requires `illuminate/auth ^10.45|^11.0|^12.0`. Laravel 13 provides `illuminate/auth` via `self.version` (13.x) from the framework bundle — this is incompatible with Filament 3.x. **Filament v5 was installed instead.** Filament v5 supports Laravel 13 and PHP 8.4 without peer-dep conflicts.
+
+### Policy Module (M02)
+
+Tables created:
+- `policies` (8 seeded rows)
+- `policy_versions` (7 seeded rows — one per non-draft policy)
+- `policy_acknowledgements` (0 rows at seed)
+
+Migrations:
+- `modules/Policy/database/migrations/2026_05_14_000001_create_policies_table.php`
+- `modules/Policy/database/migrations/2026_05_14_000002_create_policy_versions_table.php`
+- `modules/Policy/database/migrations/2026_05_14_000003_create_policy_acknowledgements_table.php`
+
+Cross-cutting migrations:
+- `database/migrations/2026_05_14_200000_add_is_admin_to_users_table.php` (adds `is_admin` boolean to users)
+
+Models: `Policy`, `PolicyVersion`, `PolicyAcknowledgement`
+Service: `PolicyService`
+State machine: 7 states (Draft, InReview, Approved, Published, InForce, UnderReview, Superseded) via `spatie/laravel-model-states`
+PDF job: `RenderPolicyPdfJob` (queued, DomPDF, local storage)
+Command: `policy:advance-states` (scheduled daily)
+
+Routes (all under `auth + verified + audit`):
+- `policies.index`, `policies.create`, `policies.store`, `policies.show`, `policies.edit`, `policies.update`, `policies.destroy`
+- `policies.transition` (POST)
+- `policies.acknowledge` (POST)
+- `policies.download` (GET)
+
+### Filament Admin Panel
+
+Path: `/admin`
+Auth: `FilamentUser` contract on `User` model — `is_admin = true` required
+Admin user seeded: `test@example.com` with `is_admin = true`
+
+Resources registered (5):
+1. `InstrumentResource` (Library, navigation group: Library)
+2. `ObligationResource` (Library, navigation group: Library)
+3. `RegulatorResource` (Library, navigation group: Library)
+4. `SanctionResource` (Sanctkb, navigation group: Sanctions)
+5. `PolicyResource` (Policy, navigation group: Policy) — includes state transition actions
+
+Widgets:
+- `KpiOverviewWidget` — 5 stat cards (obligations, regulators, high-risk, areas of focus, active policies)
+- `RecentAuditEventsWidget` — last 10 audit_events rows
+
+### Bug fixes in cross-cutting code
+
+`EmitsAuditEvent` trait: guarded the `forceDeleted` listener registration so it only fires when the model also uses `SoftDeletes`. Without this guard, models that use `EmitsAuditEvent` but not `SoftDeletes` (e.g. `PolicyAcknowledgement`) caused a re-entrant boot crash.
+
+### Test Status
+
+- `composer test`: **93 tests, 93 passed, 0 failed** (was 82/82; added 11 new tests)
+  - 9 tests: `tests/Feature/Policy/PolicyTest.php`
+  - 2 tests: `tests/Feature/Filament/FilamentAdminTest.php`
+- `php artisan migrate:fresh --seed`: clean, 8 policies seeded, no errors
+
+### Deferred / Out of scope for this phase
+
+- Filament `can create an instrument via filament resource` test and `can transition a policy state via filament action` test — Filament v5 Livewire testing helpers differ significantly from v3 docs; Livewire test integration requires additional setup not in scope for this pass. The underlying service-layer logic is tested via the `PolicyTest.php` suite instead.
+- S3 storage for PDFs — MVP uses `storage/app/policies/{id}/v{n}.pdf` (local disk)
+- Temporal workflow for policy annual review reminders — deferred to Phase 3
+- Maker-checker enforcement beyond state guards — deferred to Phase 3
+- RBAC Spatie policy enforcement on Filament resources — deferred to Phase 3
+
+### [NEEDS DECISION] Filament v5 vs v3
+
+The task brief specified Filament 3.x. Filament 3.x is incompatible with Laravel 13.x (peer dependency conflict on `illuminate/auth`). Filament v5 is the correct version for this stack and was installed. Architect should confirm Filament v5 is acceptable; the API differences (Schema instead of Form, etc.) are backward-compatible for the CRUD patterns used here but docs and future A4 agent work should reference v5 docs.
+

@@ -4,5 +4,6 @@
     "Sanctkb": true,
     "Calendar": true,
     "Dashboard": true,
-    "Audit": true
+    "Audit": true,
+    "Policy": true
 }

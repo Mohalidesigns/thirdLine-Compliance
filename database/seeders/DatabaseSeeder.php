@@ -9,6 +9,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Modules\Library\Database\Seeders\LibraryDatabaseSeeder;
+use Modules\Policy\Database\Seeders\PolicySeeder;
 use Modules\Sanctkb\Database\Seeders\SanctkbDatabaseSeeder;
 
 class DatabaseSeeder extends Seeder
@@ -19,12 +20,13 @@ class DatabaseSeeder extends Seeder
     {
         User::firstOrCreate(
             ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'password' => bcrypt('password')],
+            ['name' => 'Test User', 'password' => bcrypt('password'), 'is_admin' => true],
         );
 
         $this->call([
             LibraryDatabaseSeeder::class,
             SanctkbDatabaseSeeder::class,
+            PolicySeeder::class,
         ]);
 
         if (DB::getDriverName() === 'pgsql') {

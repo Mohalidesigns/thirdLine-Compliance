@@ -4,6 +4,7 @@ import {
     Squares2X2Icon,
     BookOpenIcon,
     ClipboardDocumentListIcon,
+    DocumentTextIcon,
     ShieldExclamationIcon,
     CalendarDaysIcon,
     UserCircleIcon,
@@ -40,6 +41,7 @@ const mainNavItems: NavItem[] = [
     { label: 'Dashboard',     routeName: 'dashboard',          Icon: Squares2X2Icon },
     { label: 'Library',       routeName: 'instruments.index',  Icon: BookOpenIcon },
     { label: 'Obligations',   routeName: 'obligations.index',  Icon: ClipboardDocumentListIcon },
+    { label: 'Policies',      routeName: 'policies.index',     Icon: DocumentTextIcon },
     { label: 'Sanctions KB',  routeName: 'sanctions.index',    Icon: ShieldExclamationIcon },
     { label: 'Calendar',      routeName: 'calendar.index',     Icon: CalendarDaysIcon },
 ];

@@ -6,6 +6,7 @@ namespace App\Concerns;
 
 use App\Services\AuditWriter;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Automatically emits audit events on state-changing Eloquent model events.
@@ -45,12 +46,14 @@ trait EmitsAuditEvent
             );
         });
 
-        static::forceDeleted(function (Model $model): void {
-            app(AuditWriter::class)->record(
-                action: static::auditActionPrefix().'.force_deleted',
-                subject: $model,
-            );
-        });
+        if (in_array(SoftDeletes::class, class_uses_recursive(static::class))) {
+            static::forceDeleted(function (Model $model): void {
+                app(AuditWriter::class)->record(
+                    action: static::auditActionPrefix().'.force_deleted',
+                    subject: $model,
+                );
+            });
+        }
     }
 
     /**

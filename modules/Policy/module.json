@@ -1,0 +1,11 @@
+{
+    "name": "Policy",
+    "alias": "policy",
+    "description": "M02 Policy & Procedure Management",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Policy\\Providers\\PolicyServiceProvider"
+    ],
+    "files": []
+}
