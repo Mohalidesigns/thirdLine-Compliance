@@ -1,0 +1,11 @@
+{
+    "name": "Sanctkb",
+    "alias": "sanctkb",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Sanctkb\\Providers\\SanctkbServiceProvider"
+    ],
+    "files": []
+}
