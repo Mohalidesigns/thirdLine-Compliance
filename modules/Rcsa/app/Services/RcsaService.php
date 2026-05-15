@@ -139,6 +139,8 @@ class RcsaService
         }
 
         DB::transaction(function () use ($cycle, $stateMap, $to): void {
+            $previousState = $cycle->state::$name;
+
             $cycle->state->transitionTo($stateMap[$to]);
 
             if ($to === 'data_capture' && $cycle->started_at === null) {
@@ -151,6 +153,12 @@ class RcsaService
             }
 
             $cycle->save();
+
+            // Record a semantic state-transition event with before/after state names.
+            $cycle->recordAudit('state_transitioned', [
+                'before' => ['state' => $previousState],
+                'after' => ['state' => $to],
+            ]);
         });
 
         return $cycle->fresh();

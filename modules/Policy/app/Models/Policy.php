@@ -9,6 +9,7 @@ use App\Concerns\EmitsAuditEvent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Audit\Concerns\Auditable;
 use Modules\Policy\States\Policy\Approved;
 use Modules\Policy\States\Policy\Draft;
 use Modules\Policy\States\Policy\InForce;
@@ -21,6 +22,7 @@ use Spatie\ModelStates\HasStates;
 
 class Policy extends Model
 {
+    use Auditable;
     use BelongsToTenant;
     use EmitsAuditEvent;
     use HasStates;

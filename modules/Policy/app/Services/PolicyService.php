@@ -92,6 +92,12 @@ class PolicyService
 
             $policy->save();
 
+            // Record a semantic state-transition event with before/after state names.
+            $policy->recordAudit('state_transitioned', [
+                'before' => ['state' => $previousState],
+                'after' => ['state' => $to],
+            ]);
+
             PolicyVersion::create([
                 'policy_id' => $policy->id,
                 'version' => $policy->version,

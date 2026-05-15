@@ -9,9 +9,12 @@ use App\Concerns\EmitsAuditEvent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Audit\Concerns\Auditable;
+use Modules\Rcsa\Services\RiskScoringService;
 
 class Risk extends Model
 {
+    use Auditable;
     use BelongsToTenant;
     use EmitsAuditEvent;
     use SoftDeletes;
@@ -66,7 +69,7 @@ class Risk extends Model
         });
 
         static::saving(function (self $risk): void {
-            $service = app(\Modules\Rcsa\Services\RiskScoringService::class);
+            $service = app(RiskScoringService::class);
 
             $cycle = $risk->relationLoaded('cycle')
                 ? $risk->cycle

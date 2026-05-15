@@ -6,10 +6,12 @@ namespace Modules\Rcsa\Models;
 
 use App\Concerns\BelongsToTenant;
 use App\Concerns\EmitsAuditEvent;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Audit\Concerns\Auditable;
 use Modules\Rcsa\States\RiskAssessmentCycle\Closed;
 use Modules\Rcsa\States\RiskAssessmentCycle\CycleState;
 use Modules\Rcsa\States\RiskAssessmentCycle\DataCapture;
@@ -21,6 +23,7 @@ use Spatie\ModelStates\HasStates;
 
 class RiskAssessmentCycle extends Model
 {
+    use Auditable;
     use BelongsToTenant;
     use EmitsAuditEvent;
     use HasStates;
@@ -71,7 +74,7 @@ class RiskAssessmentCycle extends Model
 
     public function leadAssessor(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'lead_assessor_id');
+        return $this->belongsTo(User::class, 'lead_assessor_id');
     }
 
     public function risks(): HasMany

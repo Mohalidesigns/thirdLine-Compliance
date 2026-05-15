@@ -6,11 +6,14 @@ namespace Modules\Controls\Models;
 
 use App\Concerns\BelongsToTenant;
 use App\Concerns\EmitsAuditEvent;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Audit\Concerns\Auditable;
 
 class ControlTest extends Model
 {
+    use Auditable;
     use BelongsToTenant;
     use EmitsAuditEvent;
 
@@ -52,6 +55,6 @@ class ControlTest extends Model
 
     public function tester(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'tested_by');
+        return $this->belongsTo(User::class, 'tested_by');
     }
 }

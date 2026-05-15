@@ -9,9 +9,11 @@ use App\Concerns\EmitsAuditEvent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Audit\Concerns\Auditable;
 
 class Issue extends Model
 {
+    use Auditable;
     use BelongsToTenant;
     use EmitsAuditEvent;
     use SoftDeletes;

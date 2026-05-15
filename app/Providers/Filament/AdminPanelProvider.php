@@ -4,7 +4,6 @@ namespace App\Providers\Filament;
 
 use App\Filament\Widgets\KpiOverviewWidget;
 use App\Filament\Widgets\RecentAuditEventsWidget;
-use App\Models\User;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -19,6 +18,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Modules\Audit\Filament\Resources\AuditEventResource;
 use Modules\Controls\Filament\Resources\ControlResource;
 use Modules\Controls\Filament\Resources\ControlTestResource;
 use Modules\Controls\Filament\Resources\IssueResource;
@@ -55,6 +55,7 @@ class AdminPanelProvider extends PanelProvider
                 ControlResource::class,
                 ControlTestResource::class,
                 IssueResource::class,
+                AuditEventResource::class,
             ])
             ->pages([
                 Dashboard::class,
@@ -88,5 +89,4 @@ class AdminPanelProvider extends PanelProvider
                 'System',
             ]);
     }
-
 }
