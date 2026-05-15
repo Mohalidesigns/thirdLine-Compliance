@@ -15,6 +15,34 @@ Fresh Laravel 13 skeleton (PHP 8.3+) intended to become a compliance solution. T
 - `php artisan migrate` — apply migrations. `.env` points at MySQL database `compliancesol` on `127.0.0.1`, but `phpunit.xml` overrides the test suite to use an in-memory SQLite database, so tests do not touch MySQL.
 - `composer setup` — one-shot install: composer install, copy `.env`, key:generate, migrate, npm install, build.
 
+## After pulling new phases
+
+Run these commands after pulling any phase that adds new migrations or seeders:
+
+```bash
+php artisan migrate
+php artisan db:seed
+# verify the test user has the super_admin role:
+php artisan tinker --execute="echo \App\Models\User::where('email','test@example.com')->first()?->getRoleNames();"
+```
+
+Six seeded demo accounts are available (all password `password`):
+
+| Email | Role |
+|---|---|
+| test@example.com | super_admin |
+| compliance@example.com | compliance_officer |
+| riskowner@example.com | risk_owner |
+| policyowner@example.com | policy_owner |
+| tester@example.com | control_tester |
+| auditor@example.com | auditor |
+
+On a fresh database, the nuclear option is:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
 ## Architecture notes
 
 - **Laravel 13 streamlined bootstrap.** Configuration is centralized in `bootstrap/app.php` (the `Application::configure(...)` chain) rather than the legacy `App\Http\Kernel` / `App\Console\Kernel`. Register middleware in `withMiddleware()`, exception handlers in `withExceptions()`, and the scheduler in `routes/console.php`. There is no `app/Http/Kernel.php` or `app/Console/Kernel.php` — do not recreate them.
