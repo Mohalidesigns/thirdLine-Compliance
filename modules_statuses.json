@@ -5,5 +5,7 @@
     "Calendar": true,
     "Dashboard": true,
     "Audit": true,
-    "Policy": true
+    "Policy": true,
+    "Rcsa": true,
+    "Controls": true
 }

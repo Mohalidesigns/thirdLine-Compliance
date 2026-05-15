@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('policy:advance-states')->daily();
+Schedule::command('controls:run-ccm')->dailyAt('02:00');

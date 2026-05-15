@@ -14,6 +14,8 @@ import {
     MagnifyingGlassIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    BeakerIcon,
+    ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import Dropdown from '@/Components/Dropdown';
 import FlashNotification from '@/Components/FlashNotification';
@@ -38,12 +40,15 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-    { label: 'Dashboard',     routeName: 'dashboard',          Icon: Squares2X2Icon },
-    { label: 'Library',       routeName: 'instruments.index',  Icon: BookOpenIcon },
-    { label: 'Obligations',   routeName: 'obligations.index',  Icon: ClipboardDocumentListIcon },
-    { label: 'Policies',      routeName: 'policies.index',     Icon: DocumentTextIcon },
-    { label: 'Sanctions KB',  routeName: 'sanctions.index',    Icon: ShieldExclamationIcon },
-    { label: 'Calendar',      routeName: 'calendar.index',     Icon: CalendarDaysIcon },
+    { label: 'Dashboard',        routeName: 'dashboard',             Icon: Squares2X2Icon },
+    { label: 'Library',          routeName: 'instruments.index',     Icon: BookOpenIcon },
+    { label: 'Obligations',      routeName: 'obligations.index',     Icon: ClipboardDocumentListIcon },
+    { label: 'Policies',         routeName: 'policies.index',        Icon: DocumentTextIcon },
+    { label: 'Risk Assessments', routeName: 'risk-assessments.index',Icon: ShieldExclamationIcon },
+    { label: 'Controls',         routeName: 'controls.index',        Icon: BeakerIcon },
+    { label: 'Issues',           routeName: 'issues.index',          Icon: ExclamationTriangleIcon },
+    { label: 'Sanctions KB',     routeName: 'sanctions.index',       Icon: ShieldExclamationIcon },
+    { label: 'Calendar',         routeName: 'calendar.index',        Icon: CalendarDaysIcon },
 ];
 
 const accountNavItems: NavItem[] = [

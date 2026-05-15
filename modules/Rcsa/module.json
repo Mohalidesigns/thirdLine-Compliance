@@ -1,0 +1,11 @@
+{
+    "name": "Rcsa",
+    "alias": "rcsa",
+    "description": "M04 RCSA/BRA — Risk Control Self-Assessment",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Rcsa\\Providers\\RcsaServiceProvider"
+    ],
+    "files": []
+}

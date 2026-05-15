@@ -19,10 +19,16 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Modules\Controls\Filament\Resources\ControlResource;
+use Modules\Controls\Filament\Resources\ControlTestResource;
+use Modules\Controls\Filament\Resources\IssueResource;
+use Modules\Controls\Filament\Widgets\ControlsDueWidget;
 use Modules\Library\Filament\Resources\InstrumentResource;
 use Modules\Library\Filament\Resources\ObligationResource;
 use Modules\Library\Filament\Resources\RegulatorResource;
 use Modules\Policy\Filament\Resources\PolicyResource;
+use Modules\Rcsa\Filament\Resources\RiskAssessmentResource;
+use Modules\Rcsa\Filament\Resources\RiskResource;
 use Modules\Sanctkb\Filament\Resources\SanctionResource;
 
 class AdminPanelProvider extends PanelProvider
@@ -44,6 +50,11 @@ class AdminPanelProvider extends PanelProvider
                 RegulatorResource::class,
                 SanctionResource::class,
                 PolicyResource::class,
+                RiskAssessmentResource::class,
+                RiskResource::class,
+                ControlResource::class,
+                ControlTestResource::class,
+                IssueResource::class,
             ])
             ->pages([
                 Dashboard::class,
@@ -51,6 +62,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 KpiOverviewWidget::class,
                 RecentAuditEventsWidget::class,
+                ControlsDueWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -71,6 +83,8 @@ class AdminPanelProvider extends PanelProvider
                 'Library',
                 'Sanctions',
                 'Policy',
+                'Risk',
+                'Controls',
                 'System',
             ]);
     }

@@ -53,6 +53,12 @@
             "Modules\\Policy\\": "modules/Policy/app/",
             "Modules\\Policy\\Database\\Factories\\": "modules/Policy/database/factories/",
             "Modules\\Policy\\Database\\Seeders\\": "modules/Policy/database/seeders/",
+            "Modules\\Rcsa\\": "modules/Rcsa/app/",
+            "Modules\\Rcsa\\Database\\Factories\\": "modules/Rcsa/database/factories/",
+            "Modules\\Rcsa\\Database\\Seeders\\": "modules/Rcsa/database/seeders/",
+            "Modules\\Controls\\": "modules/Controls/app/",
+            "Modules\\Controls\\Database\\Factories\\": "modules/Controls/database/factories/",
+            "Modules\\Controls\\Database\\Seeders\\": "modules/Controls/database/seeders/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

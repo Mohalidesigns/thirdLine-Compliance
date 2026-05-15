@@ -1,0 +1,11 @@
+{
+    "name": "Controls",
+    "alias": "controls",
+    "description": "M05 Controls Testing & Continuous Monitoring",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Controls\\Providers\\ControlsServiceProvider"
+    ],
+    "files": []
+}

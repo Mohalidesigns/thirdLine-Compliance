@@ -8,8 +8,10 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Modules\Controls\Database\Seeders\ControlsDatabaseSeeder;
 use Modules\Library\Database\Seeders\LibraryDatabaseSeeder;
 use Modules\Policy\Database\Seeders\PolicySeeder;
+use Modules\Rcsa\Database\Seeders\RcsaDatabaseSeeder;
 use Modules\Sanctkb\Database\Seeders\SanctkbDatabaseSeeder;
 
 class DatabaseSeeder extends Seeder
@@ -27,6 +29,8 @@ class DatabaseSeeder extends Seeder
             LibraryDatabaseSeeder::class,
             SanctkbDatabaseSeeder::class,
             PolicySeeder::class,
+            RcsaDatabaseSeeder::class,
+            ControlsDatabaseSeeder::class,
         ]);
 
         if (DB::getDriverName() === 'pgsql') {
