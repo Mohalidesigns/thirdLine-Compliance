@@ -67,13 +67,25 @@ function computeExpectedHash(string $prevHashHex, object $row): string
 
 it('inserts 100 audit events with a valid hash chain', function (): void {
     $tenantId = 1;
+    $actionPrefix = 'test.action.'.uniqid().'.';
+
+    // Capture the hash of the most-recent existing row for this tenant (if any)
+    // so the seed for the first new row matches what the trigger will use.
+    // Genesis ('\x'::BYTEA empty) only applies when the tenant has zero rows.
+    $lastExisting = DB::connection('pgsql_integration')
+        ->selectOne(
+            "SELECT encode(this_hash, 'hex') AS hash FROM audit_events
+             WHERE tenant_id = ? ORDER BY id DESC LIMIT 1",
+            [$tenantId]
+        );
+    $seedHashHex = $lastExisting->hash ?? '';
 
     for ($i = 0; $i < 100; $i++) {
         DB::connection('pgsql_integration')->table('audit_events')->insert([
             'tenant_id'    => $tenantId,
             'actor_id'     => null,
             'actor_type'   => 'system',
-            'action'       => "test.action.{$i}",
+            'action'       => $actionPrefix.$i,
             'subject_type' => null,
             'subject_id'   => null,
             'context'      => json_encode(['seq' => $i]),
@@ -84,14 +96,14 @@ it('inserts 100 audit events with a valid hash chain', function (): void {
     $rows = DB::connection('pgsql_integration')
         ->table('audit_events')
         ->where('tenant_id', $tenantId)
+        ->where('action', 'like', $actionPrefix.'%')
         ->orderBy('id')
         ->get()
         ->toArray();
 
     expect($rows)->toHaveCount(100);
 
-    // Genesis: first row's prev_hash in the trigger is '\x'::BYTEA (0 bytes).
-    $prevHashHex = '';
+    $prevHashHex = $seedHashHex;
 
     foreach ($rows as $index => $row) {
         $expectedHash = computeExpectedHash($prevHashHex, $row);
