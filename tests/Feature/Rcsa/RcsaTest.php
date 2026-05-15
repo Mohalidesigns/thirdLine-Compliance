@@ -149,10 +149,11 @@ it('blocks scoring transition if any risk lacks scores', function () {
     expect($freshState)->toBe('scoring');
 });
 
-it('produces a heatmap with risks in correct cells', function () {
+it('produces a heatmap with risks in correct cells (0-indexed counts)', function () {
     $service = app(RcsaService::class);
     $cycle = makeCycle(['methodology' => '3x3']);
 
+    // Risk A: residual_impact=3, residual_likelihood=2 → matrix[2][1]
     makeRisk($cycle, [
         'residual_likelihood' => 2,
         'residual_impact' => 3,
@@ -160,6 +161,7 @@ it('produces a heatmap with risks in correct cells', function () {
         'inherent_impact' => 3,
     ]);
 
+    // Risk B: residual_impact=1, residual_likelihood=1 → matrix[0][0]
     makeRisk($cycle, [
         'residual_likelihood' => 1,
         'residual_impact' => 1,
@@ -170,9 +172,66 @@ it('produces a heatmap with risks in correct cells', function () {
     $heatmap = $service->heatmap($cycle->id);
 
     expect($heatmap['methodology'])->toBe('3x3');
+    expect($heatmap['size'])->toBe(3);
     expect($heatmap['matrix'])->toBeArray();
-    expect(count($heatmap['matrix'][2][3]))->toBe(1);
-    expect(count($heatmap['matrix'][1][1]))->toBe(1);
+    // matrix is 0-indexed: [impact-1][likelihood-1]
+    expect($heatmap['matrix'][2][1])->toBe(1); // impact=3, likelihood=2
+    expect($heatmap['matrix'][0][0])->toBe(1); // impact=1, likelihood=1
+    // All other cells should be 0
+    expect($heatmap['matrix'][1][1])->toBe(0);
+});
+
+// ─── Fix #2: Risk destroy state guards ───────────────────────────────────────
+
+it('risk destroy succeeds when cycle is in planning state', function () {
+    $user = makeRcsaUser();
+    $cycle = makeCycle(); // defaults to planning
+    $risk = makeRisk($cycle);
+
+    $this->actingAs($user)
+        ->delete("/risks/{$risk->id}")
+        ->assertRedirect(route('risk-assessments.show', $cycle->id));
+
+    expect(Risk::withTrashed()->find($risk->id)->trashed())->toBeTrue();
+});
+
+it('risk destroy succeeds when cycle is in data_capture state', function () {
+    $user = makeRcsaUser();
+    $cycle = makeCycle();
+    DB::table('risk_assessment_cycles')->where('id', $cycle->id)->update(['state' => 'data_capture']);
+    $risk = makeRisk($cycle);
+
+    $this->actingAs($user)
+        ->delete("/risks/{$risk->id}")
+        ->assertRedirect(route('risk-assessments.show', $cycle->id));
+
+    expect(Risk::withTrashed()->find($risk->id)->trashed())->toBeTrue();
+});
+
+it('risk destroy returns 403 when cycle is in scoring state and risk still exists', function () {
+    $user = makeRcsaUser();
+    $cycle = makeCycle();
+    DB::table('risk_assessment_cycles')->where('id', $cycle->id)->update(['state' => 'scoring']);
+    $risk = makeRisk($cycle);
+
+    $this->actingAs($user)
+        ->delete("/risks/{$risk->id}")
+        ->assertForbidden();
+
+    expect(Risk::find($risk->id))->not->toBeNull();
+});
+
+it('risk destroy returns 403 when cycle is signed_off and risk still exists', function () {
+    $user = makeRcsaUser();
+    $cycle = makeCycle();
+    DB::table('risk_assessment_cycles')->where('id', $cycle->id)->update(['state' => 'signed_off']);
+    $risk = makeRisk($cycle);
+
+    $this->actingAs($user)
+        ->delete("/risks/{$risk->id}")
+        ->assertForbidden();
+
+    expect(Risk::find($risk->id))->not->toBeNull();
 });
 
 it('emits one audit event per risk create', function () {

@@ -134,6 +134,11 @@ class ControlsController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $control = $this->service->find($id);
+
+        if ($control->status !== 'draft') {
+            abort(403, 'Only draft controls can be deleted.');
+        }
+
         $control->delete();
 
         return redirect()->route('controls.index')

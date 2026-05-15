@@ -7,7 +7,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Modules\Controls\Ccm\Rules\OverdueObligationsCcmRule;
 use Modules\Controls\Models\Control;
-use Modules\Controls\Models\ControlTest;
 use Modules\Controls\Models\Issue;
 use Modules\Controls\Services\ControlsService;
 use Modules\Controls\Services\SampleSizeCalculator;
@@ -187,6 +186,126 @@ it('controls:run-ccm command writes ccm_rule_runs row and creates Issue on breac
         ->exists();
 
     expect($breachedRun)->toBeTrue();
+});
+
+// ─── Fix #2: destroy state guards ────────────────────────────────────────────
+
+it('destroy succeeds when control is in draft state', function () {
+    $user = makeControlUser();
+    $control = makeControl(['status' => 'draft']);
+
+    $this->actingAs($user)
+        ->delete("/controls/{$control->id}")
+        ->assertRedirect(route('controls.index'));
+
+    expect(Control::withTrashed()->find($control->id)->trashed())->toBeTrue();
+});
+
+it('destroy returns 403 when control is active and record still exists', function () {
+    $user = makeControlUser();
+    $control = makeControl(['status' => 'active']);
+
+    $this->actingAs($user)
+        ->delete("/controls/{$control->id}")
+        ->assertForbidden();
+
+    expect(Control::find($control->id))->not->toBeNull();
+});
+
+it('destroy returns 403 when control is deprecated and record still exists', function () {
+    $user = makeControlUser();
+    $control = makeControl(['status' => 'deprecated']);
+
+    $this->actingAs($user)
+        ->delete("/controls/{$control->id}")
+        ->assertForbidden();
+
+    expect(Control::find($control->id))->not->toBeNull();
+});
+
+// ─── Fix #5: Issue status transition guards ───────────────────────────────────
+
+it('valid issue status transition from open to in_progress succeeds', function () {
+    $user = makeControlUser();
+    $control = makeControl();
+    $issue = Issue::create([
+        'title' => 'Test Issue',
+        'description' => 'Test',
+        'source_type' => 'manual',
+        'severity' => 'medium',
+        'status' => 'open',
+        'owner_team' => 'Ops',
+        'linked_control_id' => $control->id,
+    ]);
+
+    $this->actingAs($user)
+        ->patch("/issues/{$issue->id}", ['status' => 'in_progress'])
+        ->assertRedirect();
+
+    expect($issue->fresh()->status)->toBe('in_progress');
+});
+
+it('invalid issue status transition returns validation error', function () {
+    $user = makeControlUser();
+    $control = makeControl();
+    $issue = Issue::create([
+        'title' => 'Test Issue',
+        'description' => 'Test',
+        'source_type' => 'manual',
+        'severity' => 'medium',
+        'status' => 'open',
+        'owner_team' => 'Ops',
+        'linked_control_id' => $control->id,
+    ]);
+
+    $this->actingAs($user)
+        ->patch("/issues/{$issue->id}", ['status' => 'closed'])
+        ->assertSessionHasErrors('status');
+
+    expect($issue->fresh()->status)->toBe('open');
+});
+
+it('transition to resolved requires non-empty resolution_notes', function () {
+    $user = makeControlUser();
+    $control = makeControl();
+    $issue = Issue::create([
+        'title' => 'Test Issue',
+        'description' => 'Test',
+        'source_type' => 'manual',
+        'severity' => 'medium',
+        'status' => 'in_progress',
+        'owner_team' => 'Ops',
+        'linked_control_id' => $control->id,
+    ]);
+
+    $this->actingAs($user)
+        ->patch("/issues/{$issue->id}", ['status' => 'resolved'])
+        ->assertSessionHasErrors('resolution_notes');
+
+    expect($issue->fresh()->status)->toBe('in_progress');
+});
+
+it('transition to resolved succeeds with resolution_notes', function () {
+    $user = makeControlUser();
+    $control = makeControl();
+    $issue = Issue::create([
+        'title' => 'Test Issue',
+        'description' => 'Test',
+        'source_type' => 'manual',
+        'severity' => 'medium',
+        'status' => 'in_progress',
+        'owner_team' => 'Ops',
+        'linked_control_id' => $control->id,
+    ]);
+
+    $this->actingAs($user)
+        ->patch("/issues/{$issue->id}", [
+            'status' => 'resolved',
+            'resolution_notes' => 'Fixed by patching the config.',
+        ])
+        ->assertRedirect();
+
+    expect($issue->fresh()->status)->toBe('resolved');
 });
 
 it('emits one audit event per control test create', function () {

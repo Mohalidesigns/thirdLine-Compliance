@@ -14,8 +14,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('cycle_id');
             $table->foreign('cycle_id')->references('id')->on('risk_assessment_cycles')->cascadeOnDelete();
-            $table->unsignedBigInteger('recorded_by');
-            $table->foreign('recorded_by')->references('id')->on('users');
+            $table->unsignedBigInteger('recorded_by')->nullable();
+            $table->foreign('recorded_by')->references('id')->on('users')->nullOnDelete();
             $table->timestamp('recorded_at');
 
             $table->json('attendees')->nullable();

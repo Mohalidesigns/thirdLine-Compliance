@@ -32,13 +32,10 @@ class Policy extends Model
         'title',
         'category',
         'owner_team',
-        'version',
-        'state',
         'effective_date',
         'next_review_date',
         'summary',
         'body',
-        'published_pdf_path',
     ];
 
     protected $attributes = [

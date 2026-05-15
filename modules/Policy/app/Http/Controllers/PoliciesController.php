@@ -71,7 +71,9 @@ class PoliciesController extends Controller
     public function show(int $id): InertiaResponse
     {
         $policy = $this->service->find($id);
-        $policy->loadMissing(['versions' => fn ($q) => $q->orderByDesc('transitioned_at')->limit(10)]);
+        $policy->loadMissing([
+            'versions' => fn ($q) => $q->with('transitionedBy:id,name')->orderByDesc('transitioned_at')->limit(10),
+        ]);
 
         $actorId = auth()->id();
 
@@ -81,9 +83,11 @@ class PoliciesController extends Controller
                     'id' => $v->id,
                     'version' => $v->version,
                     'state' => $v->state,
+                    'state_label' => $this->stateLabelFromName($v->state),
                     'transitioned_at' => $v->transitioned_at?->toIso8601String(),
                     'transition_note' => $v->transition_note,
                     'transitioned_by' => $v->transitioned_by,
+                    'transitioned_by_name' => $v->transitionedBy?->name,
                 ])->toArray(),
                 'acknowledgements_count' => $policy->acknowledgements()->count(),
             ]),
@@ -231,6 +235,20 @@ class PoliciesController extends Controller
             'created_at' => $policy->created_at?->toIso8601String(),
             'updated_at' => $policy->updated_at?->toIso8601String(),
         ];
+    }
+
+    private function stateLabelFromName(?string $stateName): string
+    {
+        return match ($stateName) {
+            'draft' => 'Draft',
+            'in_review' => 'In Review',
+            'approved' => 'Approved',
+            'published' => 'Published',
+            'in_force' => 'In Force',
+            'under_review' => 'Under Review',
+            'superseded' => 'Superseded',
+            default => ucfirst((string) $stateName),
+        };
     }
 
     /** @return array<int, array{value: string, label: string}> */

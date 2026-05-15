@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Modules\Rcsa\Services;
 
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Modules\Rcsa\Models\Risk;
 use Modules\Rcsa\Models\RiskAssessmentCycle;
+use Modules\Rcsa\Models\RiskWorkshopNote;
+use Modules\Rcsa\States\RiskAssessmentCycle\Closed;
+use Modules\Rcsa\States\RiskAssessmentCycle\DataCapture;
+use Modules\Rcsa\States\RiskAssessmentCycle\InReview;
+use Modules\Rcsa\States\RiskAssessmentCycle\Planning;
+use Modules\Rcsa\States\RiskAssessmentCycle\Scoring;
+use Modules\Rcsa\States\RiskAssessmentCycle\SignedOff;
 
 class RcsaService
 {
@@ -88,7 +96,7 @@ class RcsaService
             $cycle = RiskAssessmentCycle::create($data);
 
             if (! empty($data['started_at'])) {
-                $cycle->sla_due_date = \Carbon\Carbon::parse($data['started_at'])->addDays(30)->toDateString();
+                $cycle->sla_due_date = Carbon::parse($data['started_at'])->addDays(30)->toDateString();
                 $cycle->save();
             }
 
@@ -118,12 +126,12 @@ class RcsaService
     public function transitionCycle(RiskAssessmentCycle $cycle, string $to, ?int $actorId = null): RiskAssessmentCycle
     {
         $stateMap = [
-            'planning' => \Modules\Rcsa\States\RiskAssessmentCycle\Planning::class,
-            'data_capture' => \Modules\Rcsa\States\RiskAssessmentCycle\DataCapture::class,
-            'scoring' => \Modules\Rcsa\States\RiskAssessmentCycle\Scoring::class,
-            'in_review' => \Modules\Rcsa\States\RiskAssessmentCycle\InReview::class,
-            'signed_off' => \Modules\Rcsa\States\RiskAssessmentCycle\SignedOff::class,
-            'closed' => \Modules\Rcsa\States\RiskAssessmentCycle\Closed::class,
+            'planning' => Planning::class,
+            'data_capture' => DataCapture::class,
+            'scoring' => Scoring::class,
+            'in_review' => InReview::class,
+            'signed_off' => SignedOff::class,
+            'closed' => Closed::class,
         ];
 
         if (! isset($stateMap[$to])) {
@@ -163,7 +171,7 @@ class RcsaService
 
         $cycle = RiskAssessmentCycle::withoutGlobalScopes()->find($cycleId);
         $daysToSla = $cycle?->slaDaysRemaining();
-        $workshopsCount = \Modules\Rcsa\Models\RiskWorkshopNote::where('cycle_id', $cycleId)->count();
+        $workshopsCount = RiskWorkshopNote::where('cycle_id', $cycleId)->count();
 
         return [
             'risks_total' => $risks->count(),
@@ -179,25 +187,26 @@ class RcsaService
         $cycle = RiskAssessmentCycle::withoutGlobalScopes()->findOrFail($cycleId);
         $risks = Risk::where('cycle_id', $cycleId)->get();
 
-        $maxDim = $cycle->methodology === '5x5' ? 5 : 3;
-        $matrix = [];
+        $size = $cycle->methodology === '5x5' ? 5 : 3;
 
-        for ($l = 1; $l <= $maxDim; $l++) {
-            for ($i = 1; $i <= $maxDim; $i++) {
-                $matrix[$l][$i] = [];
-            }
-        }
+        // Build a 0-indexed $size×$size matrix of integer counts keyed [impact][likelihood]
+        // so the client can read matrix[impact - 1][likelihood - 1].
+        $matrix = array_fill(0, $size, array_fill(0, $size, 0));
 
         foreach ($risks as $risk) {
-            $l = $risk->residual_likelihood ?? $risk->inherent_likelihood;
-            $i = $risk->residual_impact ?? $risk->inherent_impact;
+            $likelihood = $risk->residual_likelihood ?? $risk->inherent_likelihood;
+            $impact = $risk->residual_impact ?? $risk->inherent_impact;
 
-            if ($l !== null && $i !== null && $l >= 1 && $l <= $maxDim && $i >= 1 && $i <= $maxDim) {
-                $matrix[$l][$i][] = $risk->id;
+            if ($likelihood !== null && $impact !== null
+                && $likelihood >= 1 && $likelihood <= $size
+                && $impact >= 1 && $impact <= $size
+            ) {
+                $matrix[$impact - 1][$likelihood - 1]++;
             }
         }
 
         return [
+            'size' => $size,
             'matrix' => $matrix,
             'methodology' => $cycle->methodology,
         ];

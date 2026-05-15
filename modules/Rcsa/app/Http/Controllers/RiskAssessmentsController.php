@@ -15,6 +15,7 @@ use Modules\Rcsa\Http\Requests\UpdateRiskAssessmentCycleRequest;
 use Modules\Rcsa\Models\RiskAssessmentCycle;
 use Modules\Rcsa\Models\RiskWorkshopNote;
 use Modules\Rcsa\Services\RcsaService;
+use Modules\Rcsa\Services\RiskScoringService;
 use Spatie\ModelStates\Exceptions\TransitionNotFound;
 
 class RiskAssessmentsController extends Controller
@@ -84,13 +85,16 @@ class RiskAssessmentsController extends Controller
     public function show(int $id): InertiaResponse
     {
         $cycle = $this->service->find($id);
-        $cycle->loadMissing(['leadAssessor', 'workshopNotes' => fn ($q) => $q->orderByDesc('recorded_at')->limit(5)]);
+        $cycle->loadMissing([
+            'leadAssessor',
+            'workshopNotes' => fn ($q) => $q->with('recordedBy:id,name')->orderByDesc('recorded_at')->limit(5),
+        ]);
 
         $summary = $this->service->cycleSummary($id);
         $heatmap = $this->service->heatmap($id);
         $risks = $this->service->paginatedRisks($id, []);
 
-        $scoringService = app(\Modules\Rcsa\Services\RiskScoringService::class);
+        $scoringService = app(RiskScoringService::class);
 
         $risksData = $risks->through(fn ($r) => [
             'id' => $r->id,
@@ -112,8 +116,9 @@ class RiskAssessmentsController extends Controller
                 'workshop_notes' => $cycle->workshopNotes->map(fn ($n) => [
                     'id' => $n->id,
                     'recorded_at' => $n->recorded_at?->toIso8601String(),
+                    'recorded_by_name' => $n->recordedBy?->name,
                     'notes' => $n->notes,
-                    'attendees' => $n->attendees,
+                    'attendees' => $n->attendees ?? [],
                 ])->toArray(),
             ]),
             'summary' => $summary,

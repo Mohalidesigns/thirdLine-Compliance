@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Modules\Controls\Models\Control;
 use Modules\Controls\Models\ControlTest;
 use Modules\Controls\Services\ControlsService;
 
@@ -32,9 +33,11 @@ class TestsController extends Controller
 
         $tests = $paginated->through(fn (ControlTest $t) => [
             'id' => $t->id,
-            'control_id' => $t->control_id,
-            'control_reference' => $t->control?->reference,
-            'control_title' => $t->control?->title,
+            'control' => [
+                'id' => $t->control_id,
+                'reference' => $t->control?->reference,
+                'title' => $t->control?->title,
+            ],
             'tested_at' => $t->tested_at?->toIso8601String(),
             'outcome' => $t->outcome,
             'sample_size' => $t->sample_size,
@@ -42,9 +45,17 @@ class TestsController extends Controller
             'tested_by_name' => $t->tester?->name,
         ]);
 
+        $controls = Control::query()
+            ->select(['id', 'reference', 'title'])
+            ->orderBy('reference')
+            ->get()
+            ->map(fn (Control $c) => ['value' => $c->id, 'label' => "{$c->reference} — {$c->title}"])
+            ->toArray();
+
         return Inertia::render('Tests/Index', [
             'tests' => $tests,
             'filters' => $filters,
+            'controls' => $controls,
             'outcomes' => [
                 ['value' => 'passed', 'label' => 'Passed'],
                 ['value' => 'partial', 'label' => 'Partial'],

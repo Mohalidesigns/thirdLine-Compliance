@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modules\Controls\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Modules\Controls\Http\Requests\UpdateIssueRequest;
@@ -97,6 +99,10 @@ class IssuesController extends Controller
 
         $updateData = $request->validated();
 
+        if (isset($updateData['status'])) {
+            $this->validateStatusTransition($issue->status, $updateData['status'], $updateData['resolution_notes'] ?? null);
+        }
+
         if (isset($updateData['status']) && in_array($updateData['status'], ['resolved', 'closed']) && $issue->resolved_at === null) {
             $updateData['resolved_at'] = now();
         }
@@ -104,5 +110,42 @@ class IssuesController extends Controller
         $issue->update($updateData);
 
         return back()->with('flash', ['type' => 'success', 'message' => 'Issue updated.']);
+    }
+
+    /**
+     * Enforce allowed status transitions and resolution_notes requirements.
+     *
+     * Allowed graph:
+     *   open        → in_progress, dismissed
+     *   in_progress → resolved, dismissed
+     *   resolved    → closed, in_progress
+     *   closed      → (terminal)
+     *   dismissed   → (terminal)
+     *
+     * @throws HttpResponseException (422)
+     */
+    private function validateStatusTransition(string $current, string $requested, ?string $resolutionNotes): void
+    {
+        $allowed = [
+            'open' => ['in_progress', 'dismissed'],
+            'in_progress' => ['resolved', 'dismissed'],
+            'resolved' => ['closed', 'in_progress'],
+            'closed' => [],
+            'dismissed' => [],
+        ];
+
+        $allowedNext = $allowed[$current] ?? [];
+
+        if (! in_array($requested, $allowedNext, true)) {
+            throw ValidationException::withMessages([
+                'status' => "Cannot transition issue from '{$current}' to '{$requested}'.",
+            ]);
+        }
+
+        if (in_array($requested, ['resolved', 'closed'], true) && empty(trim((string) $resolutionNotes))) {
+            throw ValidationException::withMessages([
+                'resolution_notes' => "Resolution notes are required when transitioning to '{$requested}'.",
+            ]);
+        }
     }
 }

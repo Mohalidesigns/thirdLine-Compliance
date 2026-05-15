@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Rcsa\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -33,6 +34,12 @@ class RiskWorkshopNote extends Model
 
     public function recorder(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'recorded_by');
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /** Alias of recorder() — matches the eager-load key used by controllers. */
+    public function recordedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
     }
 }

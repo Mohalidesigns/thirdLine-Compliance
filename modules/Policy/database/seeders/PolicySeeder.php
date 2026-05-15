@@ -106,7 +106,8 @@ class PolicySeeder extends Seeder
 
         foreach ($policies as $index => $data) {
             $state = $data['state'];
-            unset($data['state']);
+            $version = $data['version'] ?? 1;
+            unset($data['state'], $data['version']);
 
             $policy = Policy::create(array_merge($data, [
                 'reference' => 'POL-'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
@@ -122,14 +123,18 @@ class PolicySeeder extends Seeder
                 'superseded' => 'superseded',
             ];
 
+            // Write version and state directly — these fields are excluded from
+            // $fillable to prevent mass-assignment over-exposure.
+            $directUpdates = ['version' => $version];
             if ($state !== 'draft') {
-                DB::table('policies')
-                    ->where('id', $policy->id)
-                    ->update(['state' => $state]);
+                $directUpdates['state'] = $state;
+            }
+            DB::table('policies')->where('id', $policy->id)->update($directUpdates);
 
+            if ($state !== 'draft') {
                 PolicyVersion::create([
                     'policy_id' => $policy->id,
-                    'version' => $data['version'],
+                    'version' => $version,
                     'state' => $state,
                     'body_snapshot' => $data['body'] ?? null,
                     'transitioned_by' => null,

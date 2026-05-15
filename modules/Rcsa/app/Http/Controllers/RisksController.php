@@ -13,6 +13,7 @@ use Modules\Rcsa\Http\Requests\ScoreRiskRequest;
 use Modules\Rcsa\Http\Requests\StoreRiskRequest;
 use Modules\Rcsa\Http\Requests\UpdateRiskRequest;
 use Modules\Rcsa\Models\Risk;
+use Modules\Rcsa\Models\RiskAppetiteThreshold;
 use Modules\Rcsa\Services\RcsaService;
 use Modules\Rcsa\Services\RiskScoringService;
 
@@ -83,7 +84,7 @@ class RisksController extends Controller
 
         $appetiteThreshold = null;
         if ($risk->cycle_id !== null) {
-            $threshold = \Modules\Rcsa\Models\RiskAppetiteThreshold::withoutGlobalScopes()
+            $threshold = RiskAppetiteThreshold::withoutGlobalScopes()
                 ->where('lob', $cycle?->lob)
                 ->where('category', $risk->category)
                 ->first();
@@ -140,6 +141,15 @@ class RisksController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $risk = $this->service->findRisk($id);
+        $risk->loadMissing('cycle');
+
+        $cycleState = $risk->cycle?->state::$name ?? 'planning';
+        $deletableStates = ['planning', 'data_capture'];
+
+        if (! in_array($cycleState, $deletableStates, true)) {
+            abort(403, 'Risks can only be deleted while the cycle is in Planning or Data Capture state.');
+        }
+
         $cycleId = $risk->cycle_id;
         $risk->delete();
 
