@@ -30,6 +30,10 @@ use Modules\Policy\Filament\Resources\PolicyResource;
 use Modules\Rcsa\Filament\Resources\RiskAssessmentResource;
 use Modules\Rcsa\Filament\Resources\RiskResource;
 use Modules\Sanctkb\Filament\Resources\SanctionResource;
+use Modules\Training\Filament\Resources\AttestationCampaignResource;
+use Modules\Training\Filament\Resources\CertificationResource;
+use Modules\Training\Filament\Resources\TrainingEnrollmentResource;
+use Modules\Training\Filament\Resources\TrainingResource;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -55,6 +59,10 @@ class AdminPanelProvider extends PanelProvider
                 ControlResource::class,
                 ControlTestResource::class,
                 IssueResource::class,
+                TrainingResource::class,
+                TrainingEnrollmentResource::class,
+                AttestationCampaignResource::class,
+                CertificationResource::class,
                 AuditEventResource::class,
             ])
             ->pages([
@@ -86,6 +94,7 @@ class AdminPanelProvider extends PanelProvider
                 'Policy',
                 'Risk',
                 'Controls',
+                'Training',
                 'System',
             ]);
     }

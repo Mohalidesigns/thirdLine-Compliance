@@ -32,8 +32,8 @@ it('running RolesAndPermissionsSeeder twice does not duplicate roles', function 
 it('running RolesAndPermissionsSeeder twice does not duplicate permissions', function () {
     (new RolesAndPermissionsSeeder)->run(); // second run
     $permCount = Permission::count();
-    // 30 permissions in the matrix
-    expect($permCount)->toBe(30);
+    // 37 permissions in the matrix (30 original + 7 Training M15 permissions)
+    expect($permCount)->toBe(37);
 });
 
 // ─── super_admin bypass (Gate::before) ───────────────────────────────────────
@@ -187,12 +187,10 @@ it('shares permissions list in inertia auth payload for control_tester', functio
 
     $this->actingAs($user)
         ->get(route('dashboard'))
-        ->assertInertia(fn ($page) =>
-            $page->where('auth.permissions', fn ($perms) =>
-                collect($perms)->contains('controls.view') &&
+        ->assertInertia(fn ($page) => $page->where('auth.permissions', fn ($perms) => collect($perms)->contains('controls.view') &&
                 collect($perms)->contains('issues.create') &&
                 ! collect($perms)->contains('controls.create')
-            )
+        )
         );
 });
 
@@ -203,10 +201,8 @@ it('shares empty permissions array in inertia auth payload for roleless user', f
 
     $this->actingAs($user)
         ->get(route('dashboard'))
-        ->assertInertia(fn ($page) =>
-            $page->where('auth.permissions', fn ($perms) =>
-                is_array((array) $perms) && collect($perms)->isEmpty()
-            )
+        ->assertInertia(fn ($page) => $page->where('auth.permissions', fn ($perms) => is_array((array) $perms) && collect($perms)->isEmpty()
+        )
         );
 });
 
@@ -216,13 +212,11 @@ it('auditor receives policies.view and controls.view but not policies.create', f
 
     $this->actingAs($auditor)
         ->get(route('dashboard'))
-        ->assertInertia(fn ($page) =>
-            $page->where('auth.permissions', fn ($perms) =>
-                collect($perms)->contains('policies.view') &&
+        ->assertInertia(fn ($page) => $page->where('auth.permissions', fn ($perms) => collect($perms)->contains('policies.view') &&
                 collect($perms)->contains('controls.view') &&
                 ! collect($perms)->contains('policies.create') &&
                 ! collect($perms)->contains('controls.create')
-            )
+        )
         );
 });
 

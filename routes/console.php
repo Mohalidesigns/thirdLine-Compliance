@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('policy:advance-states')->daily();
 Schedule::command('controls:run-ccm')->dailyAt('02:00');
+Schedule::command('training:check-overdue')->dailyAt('03:00');

@@ -7,5 +7,6 @@
     "Audit": true,
     "Policy": true,
     "Rcsa": true,
-    "Controls": true
+    "Controls": true,
+    "Training": true
 }

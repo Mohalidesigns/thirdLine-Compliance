@@ -4,6 +4,7 @@ import {
     Squares2X2Icon,
     BookOpenIcon,
     ClipboardDocumentListIcon,
+    ClipboardDocumentCheckIcon,
     DocumentTextIcon,
     ShieldExclamationIcon,
     CalendarDaysIcon,
@@ -16,6 +17,7 @@ import {
     ChevronRightIcon,
     BeakerIcon,
     ExclamationTriangleIcon,
+    AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import Dropdown from '@/Components/Dropdown';
 import FlashNotification from '@/Components/FlashNotification';
@@ -49,7 +51,9 @@ const mainNavItems: NavItem[] = [
     { label: 'Policies',         routeName: 'policies.index',         Icon: DocumentTextIcon,      permission: 'policies.view' },
     { label: 'Risk Assessments', routeName: 'risk-assessments.index', Icon: ShieldExclamationIcon, permission: 'cycles.view' },
     { label: 'Controls',         routeName: 'controls.index',         Icon: BeakerIcon,            permission: 'controls.view' },
-    { label: 'Issues',           routeName: 'issues.index',           Icon: ExclamationTriangleIcon, permission: 'issues.view' },
+    { label: 'Issues',           routeName: 'issues.index',           Icon: ExclamationTriangleIcon,      permission: 'issues.view' },
+    { label: 'My Training',      routeName: 'my.training.index',      Icon: AcademicCapIcon,              permission: 'training.view' },
+    { label: 'My Attestations',  routeName: 'my.attestations.index',  Icon: ClipboardDocumentCheckIcon,   permission: 'attestations.sign' },
     { label: 'Sanctions KB',     routeName: 'sanctions.index',        Icon: ShieldExclamationIcon },
     { label: 'Calendar',         routeName: 'calendar.index',         Icon: CalendarDaysIcon },
 ];

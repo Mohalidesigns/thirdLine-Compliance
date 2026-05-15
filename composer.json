@@ -59,6 +59,9 @@
             "Modules\\Controls\\": "modules/Controls/app/",
             "Modules\\Controls\\Database\\Factories\\": "modules/Controls/database/factories/",
             "Modules\\Controls\\Database\\Seeders\\": "modules/Controls/database/seeders/",
+            "Modules\\Training\\": "modules/Training/app/",
+            "Modules\\Training\\Database\\Factories\\": "modules/Training/database/factories/",
+            "Modules\\Training\\Database\\Seeders\\": "modules/Training/database/seeders/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

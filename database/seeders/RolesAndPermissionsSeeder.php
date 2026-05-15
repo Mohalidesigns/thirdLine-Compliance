@@ -74,6 +74,15 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Admin panel
         'admin.access',
+
+        // Training (M15)
+        'training.view',
+        'training.manage',
+        'training.complete',
+        'attestations.manage',
+        'attestations.sign',
+        'certifications.view',
+        'certifications.manage',
     ];
 
     /**
@@ -128,6 +137,15 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'audit.view',
             'admin.access',
+
+            // Training (M15)
+            'training.view',
+            'training.manage',
+            'training.complete',
+            'attestations.manage',
+            'attestations.sign',
+            'certifications.view',
+            'certifications.manage',
         ],
 
         'risk_owner' => [
@@ -143,6 +161,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'controls.view',
 
             'issues.view',
+
+            // Training (M15) — view + complete own + sign own campaigns
+            'training.view',
+            'training.complete',
+            'attestations.sign',
+            'certifications.view',
         ],
 
         'control_tester' => [
@@ -159,6 +183,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'issues.create',
             'issues.update',
             'issues.transition',
+
+            // Training (M15) — view + complete own + sign own campaigns
+            'training.view',
+            'training.complete',
+            'attestations.sign',
+            'certifications.view',
         ],
 
         'policy_owner' => [
@@ -166,6 +196,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'policies.create',
             'policies.update', // PolicyPolicy restricts to own drafts only
             'policies.transition.submit_for_review',
+
+            // Training (M15) — view + complete own + sign own campaigns
+            'training.view',
+            'training.complete',
+            'attestations.sign',
+            'certifications.view',
         ],
 
         'auditor' => [
@@ -181,6 +217,11 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'audit.view',
             'admin.access',
+
+            // Training (M15) — view only for auditor; attestations.manage for viewing records
+            'training.view',
+            'attestations.manage',
+            'certifications.view',
         ],
     ];
 

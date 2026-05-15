@@ -3,13 +3,17 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Policies\AttestationCampaignPolicy;
 use App\Policies\AuditEventPolicy;
+use App\Policies\CertificationPolicy;
 use App\Policies\ControlPolicy;
 use App\Policies\ControlTestPolicy;
 use App\Policies\IssuePolicy;
 use App\Policies\PolicyPolicy;
 use App\Policies\RiskAssessmentCyclePolicy;
 use App\Policies\RiskPolicy;
+use App\Policies\TrainingEnrollmentPolicy;
+use App\Policies\TrainingPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -20,6 +24,10 @@ use Modules\Controls\Models\Issue;
 use Modules\Policy\Models\Policy;
 use Modules\Rcsa\Models\Risk;
 use Modules\Rcsa\Models\RiskAssessmentCycle;
+use Modules\Training\Models\AttestationCampaign;
+use Modules\Training\Models\Certification;
+use Modules\Training\Models\Training;
+use Modules\Training\Models\TrainingEnrollment;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -52,5 +60,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ControlTest::class, ControlTestPolicy::class);
         Gate::policy(Issue::class, IssuePolicy::class);
         Gate::policy(AuditEvent::class, AuditEventPolicy::class);
+        Gate::policy(Training::class, TrainingPolicy::class);
+        Gate::policy(TrainingEnrollment::class, TrainingEnrollmentPolicy::class);
+        Gate::policy(AttestationCampaign::class, AttestationCampaignPolicy::class);
+        Gate::policy(Certification::class, CertificationPolicy::class);
     }
 }
