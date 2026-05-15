@@ -23,6 +23,54 @@ Fresh Laravel 13 skeleton (PHP 8.3+) intended to become a compliance solution. T
 - **Queues, cache, and sessions all default to the database driver** in `.env` (not file/redis). New features that use queues/cache/sessions therefore require the migrations in `database/migrations/0001_01_01_000001_create_cache_table.php` and `0001_01_01_000002_create_jobs_table.php` to have been run.
 - **Frontend** is Vite + Tailwind v4 via `@tailwindcss/vite` (no `tailwind.config.js` — Tailwind v4 is CSS-first, configured inside `resources/css/app.css`). Blade is the templating layer; there is no Inertia/Livewire/React setup.
 
+## Authorization (Phase 4C)
+
+Role-based access control is implemented via `spatie/laravel-permission` (plain mode, no teams). Multi-tenant scoping still happens at the data layer via `BelongsToTenant`.
+
+### Roles
+
+| Role | Admin Panel | Notes |
+|---|---|---|
+| `super_admin` | Yes | Bypasses all checks via `Gate::before` |
+| `compliance_officer` | Yes | Full CRUD on all domain models |
+| `risk_owner` | No | CRUD on own risks; cycle must be in data_capture or scoring to edit |
+| `control_tester` | No | Can record tests and manage issues; read-only on controls/risks |
+| `policy_owner` | No | Can draft and submit policies; cannot approve (separation of duties) |
+| `auditor` | Yes (read-only) | Read-only across all modules |
+
+### Where permissions live
+
+`database/seeders/RolesAndPermissionsSeeder.php` is the single source of truth for the permission matrix. It is called first in `DatabaseSeeder::run()`.
+
+### How to add a new permission
+
+1. Add the permission name to the `$permissions` array in `RolesAndPermissionsSeeder`.
+2. Add it to the appropriate roles in `$rolePermissions`.
+3. Create or update the corresponding Policy class in `app/Policies/` to check `$user->can('resource.verb')`.
+4. Call `$this->authorize(...)` in the relevant controller action.
+
+### How to write a test for a role-gated action
+
+```php
+uses(RefreshDatabase::class);
+
+beforeEach(fn () => (new RolesAndPermissionsSeeder)->run());
+
+it('wrong role gets 403', function () {
+    $user = User::factory()->create()->assignRole('auditor');
+    $this->actingAs($user)->post('/controls', [...])-> assertForbidden();
+});
+```
+
+Use `$this->actingAsRole('role_name')` (defined in `Tests\TestCase`) to authenticate and return `$this` for chaining.
+
+### Key files
+
+- `app/Policies/` — one Policy class per domain model
+- `app/Providers/AppServiceProvider.php` — `Gate::before` (super_admin bypass) + policy registrations
+- `app/Http/Controllers/Controller.php` — base controller with `AuthorizesRequests` trait
+- `phpunit.xml` — sets `memory_limit = 512M` for the test suite
+
 ## Conventions
 
 - PSR-4 autoload: `App\` → `app/`, `Database\Factories\` → `database/factories/`, `Database\Seeders\` → `database/seeders/`, `Tests\` → `tests/`.

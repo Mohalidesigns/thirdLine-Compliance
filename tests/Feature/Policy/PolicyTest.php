@@ -3,22 +3,30 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Modules\Policy\Jobs\RenderPolicyPdfJob;
 use Modules\Policy\Models\Policy;
-use Modules\Policy\Models\PolicyAcknowledgement;
 use Modules\Policy\Models\PolicyVersion;
 use Modules\Policy\Services\PolicyService;
-use Modules\Policy\States\Policy\Draft;
-use Modules\Policy\States\Policy\InForce;
-use Modules\Policy\States\Policy\InReview;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    (new RolesAndPermissionsSeeder)->run();
+});
+
+/**
+ * Returns a compliance_officer user who can perform all policy actions.
+ */
 function makeUser(): User
 {
-    return User::factory()->create();
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $user->assignRole('compliance_officer');
+
+    return $user;
 }
 
 function makePolicy(array $overrides = []): Policy
@@ -48,7 +56,7 @@ it('creates a draft policy and emits one audit event', function () {
     ]);
 
     $this->assertDatabaseHas('audit_events', ['action' => 'policy.created']);
-    expect(\Illuminate\Support\Facades\DB::table('audit_events')->where('action', 'policy.created')->count())->toBe(1);
+    expect(DB::table('audit_events')->where('action', 'policy.created')->count())->toBe(1);
 });
 
 it('transitions draft to in_review', function () {
@@ -170,12 +178,86 @@ it('scheduled command advances eligible policies', function () {
     $service->transition($policy, 'approved', null, $user->id);
     $policy->refresh();
 
-    \Illuminate\Support\Facades\DB::table('policies')
+    DB::table('policies')
         ->where('id', $policy->id)
         ->update(['state' => 'published', 'effective_date' => now()->subDay()->toDateString()]);
 
     $this->artisan('policy:advance-states')->assertExitCode(0);
 
     $policy->refresh();
-    expect(\Illuminate\Support\Facades\DB::table('policies')->where('id', $policy->id)->value('state'))->toBe('in_force');
+    expect(DB::table('policies')->where('id', $policy->id)->value('state'))->toBe('in_force');
+});
+
+// ─── RBAC: wrong-role gets 403 ────────────────────────────────────────────────
+
+it('unauthenticated request to policies.store gets 302 redirect', function () {
+    $this->post('/policies', [
+        'title' => 'Should fail',
+        'category' => 'aml',
+        'owner_team' => 'Compliance',
+    ])->assertRedirect();
+});
+
+it('policy_owner can create a draft policy', function () {
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $owner->assignRole('policy_owner');
+
+    $this->actingAs($owner)->post('/policies', [
+        'title' => 'My Policy',
+        'category' => 'governance',
+        'owner_team' => 'Legal',
+    ])->assertRedirect();
+
+    $this->assertDatabaseHas('policies', ['title' => 'My Policy', 'state' => 'draft']);
+});
+
+it('policy_owner can submit a draft for review', function () {
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $owner->assignRole('policy_owner');
+    $policy = makePolicy();
+
+    $this->actingAs($owner)->post("/policies/{$policy->id}/transition", [
+        'to' => 'in_review',
+    ])->assertRedirect("/policies/{$policy->id}");
+
+    expect($policy->fresh()->state::$name)->toBe('in_review');
+});
+
+it('policy_owner cannot approve a policy in review', function () {
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $owner->assignRole('policy_owner');
+
+    $policy = makePolicy();
+    $service = app(PolicyService::class);
+    $service->transition($policy, 'in_review', null, $owner->id);
+
+    $this->actingAs($owner)->post("/policies/{$policy->id}/transition", [
+        'to' => 'approved',
+    ])->assertForbidden();
+
+    expect($policy->fresh()->state::$name)->toBe('in_review');
+});
+
+it('risk_owner cannot create a policy', function () {
+    $riskOwner = User::factory()->create(['email_verified_at' => now()]);
+    $riskOwner->assignRole('risk_owner');
+
+    $this->actingAs($riskOwner)->post('/policies', [
+        'title' => 'Unauthorized Policy',
+        'category' => 'aml',
+        'owner_team' => 'Risk',
+    ])->assertForbidden();
+});
+
+it('auditor can view policies but cannot create one', function () {
+    $auditor = User::factory()->create(['email_verified_at' => now()]);
+    $auditor->assignRole('auditor');
+    makePolicy();
+
+    $this->actingAs($auditor)->get('/policies')->assertOk();
+    $this->actingAs($auditor)->post('/policies', [
+        'title' => 'Should 403',
+        'category' => 'aml',
+        'owner_team' => 'Audit',
+    ])->assertForbidden();
 });

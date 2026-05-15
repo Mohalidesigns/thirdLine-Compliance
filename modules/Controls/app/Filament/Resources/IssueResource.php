@@ -9,6 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Controls\Filament\Resources\IssueResource\Pages;
 use Modules\Controls\Models\Issue;
 
@@ -109,5 +110,30 @@ class IssueResource extends Resource
             'edit' => Pages\EditIssue::route('/{record}/edit'),
             'view' => Pages\ViewIssue::route('/{record}'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->can('issues.view') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return auth()->user()?->can('issues.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->can('issues.create') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->can('issues.update') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->can('issues.delete') ?? false;
     }
 }

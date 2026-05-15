@@ -12,6 +12,7 @@ use Inertia\Response as InertiaResponse;
 use Modules\Rcsa\Http\Requests\StoreRiskAssessmentCycleRequest;
 use Modules\Rcsa\Http\Requests\TransitionCycleRequest;
 use Modules\Rcsa\Http\Requests\UpdateRiskAssessmentCycleRequest;
+use Modules\Rcsa\Models\Risk;
 use Modules\Rcsa\Models\RiskAssessmentCycle;
 use Modules\Rcsa\Models\RiskWorkshopNote;
 use Modules\Rcsa\Services\RcsaService;
@@ -26,6 +27,8 @@ class RiskAssessmentsController extends Controller
 
     public function index(Request $request): InertiaResponse
     {
+        $this->authorize('viewAny', RiskAssessmentCycle::class);
+
         $filters = $request->only(['search', 'lob', 'state', 'year']);
         $paginated = $this->service->paginatedCycles($filters);
 
@@ -65,6 +68,8 @@ class RiskAssessmentsController extends Controller
 
     public function create(): InertiaResponse
     {
+        $this->authorize('create', RiskAssessmentCycle::class);
+
         return Inertia::render('RiskAssessments/Create', [
             'lobs' => $this->lobOptions(),
             'methodologies' => [
@@ -76,6 +81,8 @@ class RiskAssessmentsController extends Controller
 
     public function store(StoreRiskAssessmentCycleRequest $request): RedirectResponse
     {
+        $this->authorize('create', RiskAssessmentCycle::class);
+
         $cycle = $this->service->createCycle($request->validated());
 
         return redirect()->route('risk-assessments.show', $cycle->id)
@@ -85,6 +92,8 @@ class RiskAssessmentsController extends Controller
     public function show(int $id): InertiaResponse
     {
         $cycle = $this->service->find($id);
+        $this->authorize('view', $cycle);
+
         $cycle->loadMissing([
             'leadAssessor',
             'workshopNotes' => fn ($q) => $q->with('recordedBy:id,name')->orderByDesc('recorded_at')->limit(5),
@@ -110,6 +119,8 @@ class RiskAssessmentsController extends Controller
             'breaches_appetite' => $scoringService->breachesAppetite($r->id),
         ]);
 
+        $user = auth()->user();
+
         return Inertia::render('RiskAssessments/Show', [
             'cycle' => array_merge($this->formatCycle($cycle), [
                 'lead_assessor_name' => $cycle->leadAssessor?->name,
@@ -126,10 +137,10 @@ class RiskAssessmentsController extends Controller
             'risks' => $risksData,
             'allowed_transitions' => $cycle->allowedTransitions(),
             'can' => [
-                'edit' => in_array($cycle->state::$name, ['planning', 'data_capture']),
-                'transition' => true,
-                'delete' => $cycle->state::$name === 'planning',
-                'add_risk' => in_array($cycle->state::$name, ['data_capture', 'scoring']),
+                'edit' => in_array($cycle->state::$name, ['planning', 'data_capture']) && $user?->can('update', $cycle),
+                'transition' => $user?->can('transition', $cycle),
+                'delete' => $cycle->state::$name === 'planning' && $user?->can('delete', $cycle),
+                'add_risk' => in_array($cycle->state::$name, ['data_capture', 'scoring']) && $user?->can('create', Risk::class),
                 'add_workshop' => true,
             ],
         ]);
@@ -138,6 +149,7 @@ class RiskAssessmentsController extends Controller
     public function edit(int $id): InertiaResponse
     {
         $cycle = $this->service->find($id);
+        $this->authorize('update', $cycle);
 
         return Inertia::render('RiskAssessments/Edit', [
             'cycle' => $this->formatCycle($cycle),
@@ -152,6 +164,8 @@ class RiskAssessmentsController extends Controller
     public function update(UpdateRiskAssessmentCycleRequest $request, int $id): RedirectResponse
     {
         $cycle = $this->service->find($id);
+        $this->authorize('update', $cycle);
+
         $this->service->updateCycle($cycle, $request->validated());
 
         return redirect()->route('risk-assessments.show', $cycle->id)
@@ -161,6 +175,7 @@ class RiskAssessmentsController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $cycle = $this->service->find($id);
+        $this->authorize('delete', $cycle);
 
         if ($cycle->state::$name !== 'planning') {
             abort(403, 'Only cycles in Planning state can be deleted.');
@@ -175,6 +190,8 @@ class RiskAssessmentsController extends Controller
     public function transition(TransitionCycleRequest $request, int $id): RedirectResponse
     {
         $cycle = $this->service->find($id);
+        $this->authorize('transition', $cycle);
+
         $to = $request->validated('to');
         $workshopNote = $request->validated('workshop_note');
 

@@ -26,6 +26,8 @@ class RisksController extends Controller
 
     public function index(Request $request): InertiaResponse
     {
+        $this->authorize('viewAny', Risk::class);
+
         $cycleId = (int) $request->query('cycle');
         $filters = $request->only(['category', 'rating', 'appetite_breached']);
 
@@ -50,6 +52,8 @@ class RisksController extends Controller
 
     public function create(Request $request): InertiaResponse
     {
+        $this->authorize('create', Risk::class);
+
         $cycleId = (int) $request->query('cycle');
         $cycle = $cycleId > 0 ? $this->service->find($cycleId) : null;
 
@@ -61,6 +65,8 @@ class RisksController extends Controller
 
     public function store(StoreRiskRequest $request): RedirectResponse
     {
+        $this->authorize('create', Risk::class);
+
         $risk = $this->service->createRisk($request->validated());
 
         return redirect()->route('risks.show', $risk->id)
@@ -70,6 +76,8 @@ class RisksController extends Controller
     public function show(int $id): InertiaResponse
     {
         $risk = $this->service->findRisk($id);
+        $this->authorize('view', $risk);
+
         $risk->loadMissing('cycle');
 
         $appetite = $this->scoring->appetiteFor($risk->cycle_id, $risk->category);
@@ -97,6 +105,8 @@ class RisksController extends Controller
             }
         }
 
+        $user = auth()->user();
+
         return Inertia::render('Risks/Show', [
             'risk' => array_merge($this->formatRisk($risk), [
                 'cycle' => $cycle ? [
@@ -111,9 +121,9 @@ class RisksController extends Controller
             'appetite' => $appetiteThreshold,
             'breaches_appetite' => $breaches,
             'can' => [
-                'edit' => true,
-                'delete' => true,
-                'score' => true,
+                'edit' => $user?->can('update', $risk),
+                'delete' => $user?->can('delete', $risk),
+                'score' => $user?->can('score', $risk),
             ],
         ]);
     }
@@ -121,6 +131,8 @@ class RisksController extends Controller
     public function edit(int $id): InertiaResponse
     {
         $risk = $this->service->findRisk($id);
+        $this->authorize('update', $risk);
+
         $risk->loadMissing('cycle');
 
         return Inertia::render('Risks/Edit', [
@@ -132,6 +144,8 @@ class RisksController extends Controller
     public function update(UpdateRiskRequest $request, int $id): RedirectResponse
     {
         $risk = $this->service->findRisk($id);
+        $this->authorize('update', $risk);
+
         $this->service->updateRisk($risk, $request->validated());
 
         return redirect()->route('risks.show', $risk->id)
@@ -141,6 +155,8 @@ class RisksController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $risk = $this->service->findRisk($id);
+        $this->authorize('delete', $risk);
+
         $risk->loadMissing('cycle');
 
         $cycleState = $risk->cycle?->state::$name ?? 'planning';
@@ -160,6 +176,8 @@ class RisksController extends Controller
     public function score(ScoreRiskRequest $request, int $id): RedirectResponse
     {
         $risk = $this->service->findRisk($id);
+        $this->authorize('score', $risk);
+
         $type = $request->validated('type');
         $likelihood = (int) $request->validated('likelihood');
         $impact = (int) $request->validated('impact');

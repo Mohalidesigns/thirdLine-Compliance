@@ -9,6 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Controls\Filament\Resources\ControlTestResource\Pages;
 use Modules\Controls\Models\ControlTest;
 
@@ -81,5 +82,31 @@ class ControlTestResource extends Resource
             'create' => Pages\CreateControlTest::route('/create'),
             'view' => Pages\ViewControlTest::route('/{record}'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->can('controls.view') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return auth()->user()?->can('controls.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->can('controls.test') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        // Control tests are immutable once recorded.
+        return false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->can('controls.delete') ?? false;
     }
 }

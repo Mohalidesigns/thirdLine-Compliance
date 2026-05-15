@@ -20,10 +20,62 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        User::firstOrCreate(
+        // RBAC must seed first so that roles exist before module seeders run.
+        $this->call(RolesAndPermissionsSeeder::class);
+
+        // Primary admin — super_admin role.
+        $admin = User::firstOrCreate(
             ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'password' => bcrypt('password'), 'is_admin' => true],
+            [
+                'name' => 'Adaeze Okonkwo',
+                'password' => bcrypt('password'),
+                'is_admin' => true,
+                'email_verified_at' => now(),
+            ],
         );
+        $admin->syncRoles(['super_admin']);
+
+        // Demo users — one per role (realistic Nigerian-bank names).
+        $demos = [
+            [
+                'name' => 'Chukwuemeka Nwosu',
+                'email' => 'compliance@example.com',
+                'role' => 'compliance_officer',
+            ],
+            [
+                'name' => 'Ngozi Adeleke',
+                'email' => 'riskowner@example.com',
+                'role' => 'risk_owner',
+            ],
+            [
+                'name' => 'Babatunde Fashola',
+                'email' => 'policyowner@example.com',
+                'role' => 'policy_owner',
+            ],
+            [
+                'name' => 'Ifeoma Obi',
+                'email' => 'tester@example.com',
+                'role' => 'control_tester',
+            ],
+            [
+                'name' => 'Emeka Eze',
+                'email' => 'auditor@example.com',
+                'role' => 'auditor',
+            ],
+        ];
+
+        foreach ($demos as $demo) {
+            $user = User::firstOrCreate(
+                ['email' => $demo['email']],
+                [
+                    'name' => $demo['name'],
+                    'password' => bcrypt('password'),
+                    'is_admin' => false,
+                    'email_verified_at' => now(),
+                ],
+            );
+            $user->syncRoles([$demo['role']]);
+        }
 
         $this->call([
             LibraryDatabaseSeeder::class,
@@ -38,4 +90,3 @@ class DatabaseSeeder extends Seeder
         }
     }
 }
-

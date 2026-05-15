@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Modules\Controls\Ccm\Rules\OverdueObligationsCcmRule;
@@ -13,9 +14,19 @@ use Modules\Controls\Services\SampleSizeCalculator;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    (new RolesAndPermissionsSeeder)->run();
+});
+
+/**
+ * Returns a compliance_officer who can perform all control actions.
+ */
 function makeControlUser(): User
 {
-    return User::factory()->create();
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $user->assignRole('compliance_officer');
+
+    return $user;
 }
 
 function makeControl(array $overrides = []): Control
@@ -322,4 +333,121 @@ it('emits one audit event per control test create', function () {
 
     $auditAfter = DB::table('audit_events')->where('action', 'control_test.created')->count();
     expect($auditAfter - $auditBefore)->toBe(1);
+});
+
+// ─── RBAC: wrong-role gets 403 ────────────────────────────────────────────────
+
+it('control_tester cannot update a control', function () {
+    $tester = User::factory()->create(['email_verified_at' => now()]);
+    $tester->assignRole('control_tester');
+    $control = makeControl();
+
+    $this->actingAs($tester)
+        ->put("/controls/{$control->id}", [
+            'title' => 'Hacked title',
+            'control_type' => 'preventive',
+            'nature' => 'manual',
+            'frequency' => 'daily',
+            'owner_team' => 'Ops',
+            'status' => 'active',
+        ])
+        ->assertForbidden();
+});
+
+it('control_tester cannot create a control', function () {
+    $tester = User::factory()->create(['email_verified_at' => now()]);
+    $tester->assignRole('control_tester');
+
+    $this->actingAs($tester)
+        ->post('/controls', [
+            'title' => 'Unauthorized control',
+            'control_type' => 'preventive',
+            'nature' => 'manual',
+            'frequency' => 'daily',
+            'owner_team' => 'Ops',
+            'status' => 'active',
+        ])
+        ->assertForbidden();
+});
+
+it('control_tester can record a test on an active control', function () {
+    $tester = User::factory()->create(['email_verified_at' => now()]);
+    $tester->assignRole('control_tester');
+    $control = makeControl(['status' => 'active']);
+
+    $this->actingAs($tester)
+        ->post("/controls/{$control->id}/tests", [
+            'outcome' => 'passed',
+            'sample_size' => 10,
+            'population_size' => 100,
+            'tested_at' => now()->toDateTimeString(),
+        ])
+        ->assertRedirect();
+});
+
+it('risk_owner cannot create a control', function () {
+    $riskOwner = User::factory()->create(['email_verified_at' => now()]);
+    $riskOwner->assignRole('risk_owner');
+
+    $this->actingAs($riskOwner)
+        ->post('/controls', [
+            'title' => 'Unauthorized',
+            'control_type' => 'preventive',
+            'nature' => 'manual',
+            'frequency' => 'daily',
+            'owner_team' => 'Risk',
+            'status' => 'active',
+        ])
+        ->assertForbidden();
+});
+
+it('auditor can view controls list but cannot create', function () {
+    $auditor = User::factory()->create(['email_verified_at' => now()]);
+    $auditor->assignRole('auditor');
+    makeControl();
+
+    $this->actingAs($auditor)->get('/controls')->assertOk();
+    $this->actingAs($auditor)->post('/controls', [
+        'title' => 'Unauthorized',
+        'control_type' => 'preventive',
+        'nature' => 'manual',
+        'frequency' => 'daily',
+        'owner_team' => 'Audit',
+        'status' => 'active',
+    ])->assertForbidden();
+});
+
+it('control_tester can view issues list', function () {
+    // control_tester HAS issues.view per the matrix.
+    $tester = User::factory()->create(['email_verified_at' => now()]);
+    $tester->assignRole('control_tester');
+    makeControl();
+
+    $this->actingAs($tester)
+        ->get('/issues')
+        ->assertOk();
+});
+
+it('risk_owner can view issues but cannot transition one', function () {
+    // risk_owner has issues.view but NOT issues.transition.
+    $riskOwner = User::factory()->create(['email_verified_at' => now()]);
+    $riskOwner->assignRole('risk_owner');
+    $control = makeControl();
+    $issue = Issue::create([
+        'title' => 'Issue',
+        'description' => 'Desc',
+        'source_type' => 'manual',
+        'severity' => 'low',
+        'status' => 'open',
+        'owner_team' => 'Risk',
+        'linked_control_id' => $control->id,
+    ]);
+
+    // View should work.
+    $this->actingAs($riskOwner)->get("/issues/{$issue->id}")->assertOk();
+
+    // Status transition should be forbidden (requires issues.transition).
+    $this->actingAs($riskOwner)
+        ->patch("/issues/{$issue->id}", ['status' => 'in_progress'])
+        ->assertForbidden();
 });

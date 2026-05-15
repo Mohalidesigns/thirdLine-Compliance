@@ -9,6 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Rcsa\Filament\Resources\RiskResource\Pages;
 use Modules\Rcsa\Models\Risk;
 
@@ -139,5 +140,30 @@ class RiskResource extends Resource
             'edit' => Pages\EditRisk::route('/{record}/edit'),
             'view' => Pages\ViewRisk::route('/{record}'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->can('risks.view') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return auth()->user()?->can('risks.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->can('risks.create') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->can('risks.update') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->can('risks.delete') ?? false;
     }
 }

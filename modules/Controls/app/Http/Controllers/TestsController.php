@@ -20,6 +20,8 @@ class TestsController extends Controller
 
     public function index(Request $request): InertiaResponse
     {
+        $this->authorize('viewAny', ControlTest::class);
+
         $filters = $request->only(['control', 'outcome', 'date_from', 'date_to']);
 
         $controlId = isset($filters['control']) ? (int) $filters['control'] : 0;
@@ -68,6 +70,8 @@ class TestsController extends Controller
     public function show(int $id): InertiaResponse
     {
         $test = $this->service->findTest($id);
+        $this->authorize('view', $test);
+
         $test->loadMissing(['control', 'tester']);
 
         return Inertia::render('Tests/Show', [

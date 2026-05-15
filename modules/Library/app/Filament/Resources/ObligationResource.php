@@ -9,6 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Library\Filament\Resources\ObligationResource\Pages;
 use Modules\Library\Models\Instrument;
 use Modules\Library\Models\Obligation;
@@ -122,5 +123,30 @@ class ObligationResource extends Resource
             'edit' => Pages\EditObligation::route('/{record}/edit'),
             'view' => Pages\ViewObligation::route('/{record}'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer', 'auditor']) ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer', 'auditor']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer']) ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer']) ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer']) ?? false;
     }
 }

@@ -25,6 +25,8 @@ class PoliciesController extends Controller
 
     public function index(Request $request): InertiaResponse
     {
+        $this->authorize('viewAny', Policy::class);
+
         $filters = $request->only(['search', 'status', 'category']);
         $paginated = $this->service->paginatedList($filters);
 
@@ -55,6 +57,8 @@ class PoliciesController extends Controller
 
     public function create(): InertiaResponse
     {
+        $this->authorize('create', Policy::class);
+
         return Inertia::render('Policies/Create', [
             'categories' => $this->categoryOptions(),
         ]);
@@ -62,6 +66,8 @@ class PoliciesController extends Controller
 
     public function store(StorePolicyRequest $request): RedirectResponse
     {
+        $this->authorize('create', Policy::class);
+
         $policy = $this->service->create($request->validated());
 
         return redirect()->route('policies.show', $policy->id)
@@ -71,6 +77,8 @@ class PoliciesController extends Controller
     public function show(int $id): InertiaResponse
     {
         $policy = $this->service->find($id);
+        $this->authorize('view', $policy);
+
         $policy->loadMissing([
             'versions' => fn ($q) => $q->with('transitionedBy:id,name')->orderByDesc('transitioned_at')->limit(10),
         ]);
@@ -93,9 +101,9 @@ class PoliciesController extends Controller
             ]),
             'allowed_transitions' => $policy->allowedTransitions(),
             'can' => [
-                'edit' => $policy->state::$name === 'draft',
-                'transition' => true,
-                'delete' => $policy->state::$name === 'draft',
+                'edit' => $policy->state::$name === 'draft' && auth()->user()?->can('update', $policy),
+                'transition' => auth()->user()?->can('policies.transition.approve') || auth()->user()?->can('policies.transition.submit_for_review'),
+                'delete' => $policy->state::$name === 'draft' && auth()->user()?->can('delete', $policy),
                 'acknowledge' => in_array($policy->state::$name, ['published', 'in_force']),
                 'download' => in_array($policy->state::$name, ['in_force', 'superseded']) && $policy->published_pdf_path !== null,
             ],
@@ -106,6 +114,7 @@ class PoliciesController extends Controller
     public function edit(int $id): InertiaResponse
     {
         $policy = $this->service->find($id);
+        $this->authorize('update', $policy);
 
         if ($policy->state::$name !== 'draft') {
             abort(403, 'Only draft policies can be edited.');
@@ -120,6 +129,7 @@ class PoliciesController extends Controller
     public function update(UpdatePolicyRequest $request, int $id): RedirectResponse
     {
         $policy = $this->service->find($id);
+        $this->authorize('update', $policy);
 
         if ($policy->state::$name !== 'draft') {
             abort(403, 'Only draft policies can be updated.');
@@ -135,6 +145,9 @@ class PoliciesController extends Controller
     {
         $policy = $this->service->find($id);
         $to = $request->validated('to');
+
+        $this->authorize('transition', [$policy, $to]);
+
         $note = $request->validated('note');
 
         $requiresNote = collect($policy->allowedTransitions())
@@ -160,6 +173,7 @@ class PoliciesController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $policy = $this->service->find($id);
+        $this->authorize('delete', $policy);
 
         if ($policy->state::$name !== 'draft') {
             abort(403, 'Only draft policies can be deleted.');
@@ -174,6 +188,7 @@ class PoliciesController extends Controller
     public function download(int $id): Response
     {
         $policy = $this->service->find($id);
+        $this->authorize('view', $policy);
 
         if (! in_array($policy->state::$name, ['in_force', 'superseded'])) {
             abort(404, 'PDF not available for this policy state.');
@@ -198,6 +213,8 @@ class PoliciesController extends Controller
     public function acknowledge(int $id): RedirectResponse
     {
         $policy = $this->service->find($id);
+        $this->authorize('view', $policy);
+
         $userId = auth()->id();
 
         if (! in_array($policy->state::$name, ['published', 'in_force'])) {

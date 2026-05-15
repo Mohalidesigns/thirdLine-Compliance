@@ -25,6 +25,8 @@ class ControlsController extends Controller
 
     public function index(Request $request): InertiaResponse
     {
+        $this->authorize('viewAny', Control::class);
+
         $filters = $request->only(['search', 'type', 'frequency', 'status', 'owner', 'due_soon']);
         $paginated = $this->service->paginatedControls($filters);
 
@@ -56,6 +58,8 @@ class ControlsController extends Controller
 
     public function create(): InertiaResponse
     {
+        $this->authorize('create', Control::class);
+
         return Inertia::render('Controls/Create', [
             'types' => $this->typeOptions(),
             'natures' => $this->natureOptions(),
@@ -66,6 +70,8 @@ class ControlsController extends Controller
 
     public function store(StoreControlRequest $request): RedirectResponse
     {
+        $this->authorize('create', Control::class);
+
         $control = $this->service->create($request->validated());
 
         return redirect()->route('controls.show', $control->id)
@@ -75,6 +81,8 @@ class ControlsController extends Controller
     public function show(int $id): InertiaResponse
     {
         $control = $this->service->find($id);
+        $this->authorize('view', $control);
+
         $recentTests = $control->tests()
             ->with('tester')
             ->orderByDesc('tested_at')
@@ -83,6 +91,8 @@ class ControlsController extends Controller
 
         $defaultPop = 200;
         $suggestedSample = $this->calculator->calculate($defaultPop);
+
+        $user = auth()->user();
 
         return Inertia::render('Controls/Show', [
             'control' => array_merge($this->formatControl($control), [
@@ -102,9 +112,9 @@ class ControlsController extends Controller
             'next_test_due' => $control->next_test_due?->format('Y-m-d'),
             'sample_size_suggestion' => $suggestedSample,
             'can' => [
-                'edit' => true,
-                'delete' => $control->status === 'draft',
-                'test' => $control->status === 'active',
+                'edit' => $user?->can('update', $control),
+                'delete' => $control->status === 'draft' && $user?->can('delete', $control),
+                'test' => $control->status === 'active' && $user?->can('test', $control),
             ],
         ]);
     }
@@ -112,6 +122,7 @@ class ControlsController extends Controller
     public function edit(int $id): InertiaResponse
     {
         $control = $this->service->find($id);
+        $this->authorize('update', $control);
 
         return Inertia::render('Controls/Edit', [
             'control' => $this->formatControl($control),
@@ -125,6 +136,8 @@ class ControlsController extends Controller
     public function update(UpdateControlRequest $request, int $id): RedirectResponse
     {
         $control = $this->service->find($id);
+        $this->authorize('update', $control);
+
         $this->service->update($control, $request->validated());
 
         return redirect()->route('controls.show', $control->id)
@@ -134,6 +147,7 @@ class ControlsController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $control = $this->service->find($id);
+        $this->authorize('delete', $control);
 
         if ($control->status !== 'draft') {
             abort(403, 'Only draft controls can be deleted.');
@@ -148,6 +162,7 @@ class ControlsController extends Controller
     public function test(int $id): InertiaResponse
     {
         $control = $this->service->find($id);
+        $this->authorize('test', $control);
 
         $population = 200;
         $suggested = $this->calculator->calculate($population);
@@ -166,6 +181,9 @@ class ControlsController extends Controller
 
     public function recordTest(RecordTestRequest $request, int $id): RedirectResponse
     {
+        $control = $this->service->find($id);
+        $this->authorize('test', $control);
+
         $test = $this->service->recordTest($id, $request->validated(), auth()->id());
 
         return redirect()->route('controls.show', $id)

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Modules\Rcsa\Models\Risk;
@@ -13,9 +14,19 @@ use Modules\Rcsa\Services\RiskScoringService;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    (new RolesAndPermissionsSeeder)->run();
+});
+
+/**
+ * Returns a compliance_officer who can perform all RCSA actions.
+ */
 function makeRcsaUser(): User
 {
-    return User::factory()->create();
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $user->assignRole('compliance_officer');
+
+    return $user;
 }
 
 function makeCycle(array $overrides = []): RiskAssessmentCycle
@@ -256,4 +267,82 @@ it('creates a cycle and transitions through states correctly', function () {
 
     $freshState = DB::table('risk_assessment_cycles')->where('id', $cycle->id)->value('state');
     expect($freshState)->toBe('data_capture');
+});
+
+// ─── RBAC: wrong-role gets 403 ────────────────────────────────────────────────
+
+it('risk_owner cannot transition a cycle', function () {
+    $riskOwner = User::factory()->create(['email_verified_at' => now()]);
+    $riskOwner->assignRole('risk_owner');
+    $cycle = makeCycle();
+
+    $this->actingAs($riskOwner)
+        ->post("/risk-assessments/{$cycle->id}/transition", ['to' => 'data_capture'])
+        ->assertForbidden();
+
+    $freshState = DB::table('risk_assessment_cycles')->where('id', $cycle->id)->value('state');
+    expect($freshState)->toBe('planning');
+});
+
+it('risk_owner can update a risk while cycle is in data_capture', function () {
+    $riskOwner = User::factory()->create(['email_verified_at' => now()]);
+    $riskOwner->assignRole('risk_owner');
+
+    $cycle = makeCycle();
+    DB::table('risk_assessment_cycles')->where('id', $cycle->id)->update(['state' => 'data_capture']);
+    $risk = makeRisk($cycle);
+
+    $this->actingAs($riskOwner)
+        ->put("/risks/{$risk->id}", [
+            'cycle_id' => $cycle->id,
+            'title' => 'Updated Risk Title',
+            'description' => 'Updated description',
+            'category' => 'operational',
+        ])
+        ->assertRedirect(); // success
+});
+
+it('risk_owner cannot update a risk when cycle is past scoring', function () {
+    $riskOwner = User::factory()->create(['email_verified_at' => now()]);
+    $riskOwner->assignRole('risk_owner');
+
+    $cycle = makeCycle();
+    DB::table('risk_assessment_cycles')->where('id', $cycle->id)->update(['state' => 'in_review']);
+    $risk = makeRisk($cycle);
+
+    $this->actingAs($riskOwner)
+        ->put("/risks/{$risk->id}", [
+            'cycle_id' => $cycle->id,
+            'title' => 'Updated Risk Title',
+            'description' => 'Updated description',
+            'category' => 'operational',
+        ])
+        ->assertForbidden();
+});
+
+it('control_tester cannot create a risk assessment cycle', function () {
+    $tester = User::factory()->create(['email_verified_at' => now()]);
+    $tester->assignRole('control_tester');
+
+    $this->actingAs($tester)
+        ->post('/risk-assessments', [
+            'name' => 'Unauthorized cycle',
+            'lob' => 'IT',
+            'cycle_year' => 2026,
+            'methodology' => '3x3',
+        ])
+        ->assertForbidden();
+});
+
+it('auditor can view risk assessments but cannot create a cycle', function () {
+    $auditor = User::factory()->create(['email_verified_at' => now()]);
+    $auditor->assignRole('auditor');
+
+    $this->actingAs($auditor)->get('/risk-assessments')->assertOk();
+    $this->actingAs($auditor)->post('/risk-assessments', [
+        'name' => 'Unauthorized',
+        'lob' => 'Retail',
+        'cycle_year' => 2026,
+        'methodology' => '3x3',
+    ])->assertForbidden();
 });

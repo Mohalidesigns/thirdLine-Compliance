@@ -9,6 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Library\Filament\Resources\InstrumentResource\Pages;
 use Modules\Library\Models\AreaOfFocus;
 use Modules\Library\Models\Instrument;
@@ -148,5 +149,31 @@ class InstrumentResource extends Resource
             'edit' => Pages\EditInstrument::route('/{record}/edit'),
             'view' => Pages\ViewInstrument::route('/{record}'),
         ];
+    }
+
+    // Library resources: compliance_officer and super_admin may write; auditor reads.
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer', 'auditor']) ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer', 'auditor']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer']) ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer']) ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'compliance_officer']) ?? false;
     }
 }

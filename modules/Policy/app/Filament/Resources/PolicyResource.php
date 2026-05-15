@@ -202,8 +202,32 @@ class PolicyResource extends Resource
         ];
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->can('policies.view') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return auth()->user()?->can('policies.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->can('policies.create') ?? false;
+    }
+
     public static function canEdit(Model $record): bool
     {
+        if (! (auth()->user()?->can('policies.update') ?? false)) {
+            return false;
+        }
+
         return $record->state::$name === 'draft';
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->can('policies.delete') ?? false;
     }
 }

@@ -11,6 +11,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Modules\Audit\Filament\Resources\AuditEventResource\Pages;
 use Modules\Audit\Models\AuditEvent;
@@ -37,8 +38,28 @@ class AuditEventResource extends Resource
 
     protected static ?string $pluralLabel = 'Audit Events';
 
-    // Disable create entirely.
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->can('audit.view') ?? false;
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return auth()->user()?->can('audit.view') ?? false;
+    }
+
+    // Audit log is append-only — create, edit, and delete are permanently disabled.
     public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete(Model $record): bool
     {
         return false;
     }

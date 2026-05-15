@@ -23,6 +23,8 @@ class IssuesController extends Controller
 
     public function index(Request $request): InertiaResponse
     {
+        $this->authorize('viewAny', Issue::class);
+
         $filters = $request->only(['status', 'severity', 'source_type']);
         $paginated = $this->service->paginatedIssues($filters);
 
@@ -67,6 +69,8 @@ class IssuesController extends Controller
     public function show(int $id): InertiaResponse
     {
         $issue = $this->service->findIssue($id);
+        $this->authorize('view', $issue);
+
         $issue->loadMissing('control');
 
         return Inertia::render('Issues/Show', [
@@ -96,10 +100,13 @@ class IssuesController extends Controller
     public function update(UpdateIssueRequest $request, int $id): RedirectResponse
     {
         $issue = $this->service->findIssue($id);
+        $this->authorize('update', $issue);
 
         $updateData = $request->validated();
 
         if (isset($updateData['status'])) {
+            // Transitioning status requires the transition permission.
+            $this->authorize('transition', $issue);
             $this->validateStatusTransition($issue->status, $updateData['status'], $updateData['resolution_notes'] ?? null);
         }
 
