@@ -9,5 +9,6 @@
     "Rcsa": true,
     "Controls": true,
     "Training": true,
-    "Incident": true
+    "Incident": true,
+    "Returns": true
 }

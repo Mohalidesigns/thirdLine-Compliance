@@ -65,6 +65,9 @@
             "Modules\\Incident\\": "modules/Incident/app/",
             "Modules\\Incident\\Database\\Factories\\": "modules/Incident/database/factories/",
             "Modules\\Incident\\Database\\Seeders\\": "modules/Incident/database/seeders/",
+            "Modules\\Returns\\": "modules/Returns/app/",
+            "Modules\\Returns\\Database\\Factories\\": "modules/Returns/database/factories/",
+            "Modules\\Returns\\Database\\Seeders\\": "modules/Returns/database/seeders/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

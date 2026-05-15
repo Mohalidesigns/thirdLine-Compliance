@@ -92,6 +92,16 @@ class RolesAndPermissionsSeeder extends Seeder
         'incidents.notify',
         'incidents.attach_evidence',
         'incidents.loss_register',
+
+        // Returns (M10)
+        'returns.view',
+        'returns.manage',
+        'returns.run',
+        'returns.maker',
+        'returns.checker',
+        'returns.approver',
+        'returns.acknowledge',
+        'returns.dashboard',
     ];
 
     /**
@@ -164,6 +174,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'incidents.notify',
             'incidents.attach_evidence',
             'incidents.loss_register',
+
+            // Returns (M10)
+            'returns.view',
+            'returns.manage',
+            'returns.run',
+            'returns.maker',
+            'returns.checker',
+            'returns.approver',
+            'returns.acknowledge',
+            'returns.dashboard',
         ],
 
         'risk_owner' => [
@@ -192,6 +212,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'incidents.update',
             'incidents.attach_evidence',
             'incidents.loss_register',
+
+            // Returns (M10) — view only
+            'returns.view',
+            'returns.dashboard',
         ],
 
         'control_tester' => [
@@ -219,6 +243,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'incidents.view',
             'incidents.create',
             'incidents.attach_evidence',
+
+            // Returns (M10) — view only
+            'returns.view',
+            'returns.dashboard',
         ],
 
         'policy_owner' => [
@@ -236,6 +264,10 @@ class RolesAndPermissionsSeeder extends Seeder
             // Incidents (M16)
             'incidents.view',
             'incidents.create',
+
+            // Returns (M10) — view only
+            'returns.view',
+            'returns.dashboard',
         ],
 
         'auditor' => [
@@ -259,6 +291,10 @@ class RolesAndPermissionsSeeder extends Seeder
 
             // Incidents (M16) — read-only
             'incidents.view',
+
+            // Returns (M10) — view + dashboard only
+            'returns.view',
+            'returns.dashboard',
         ],
     ];
 

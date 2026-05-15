@@ -33,6 +33,10 @@ use Modules\Library\Filament\Resources\RegulatorResource;
 use Modules\Policy\Filament\Resources\PolicyResource;
 use Modules\Rcsa\Filament\Resources\RiskAssessmentResource;
 use Modules\Rcsa\Filament\Resources\RiskResource;
+use Modules\Returns\Filament\Resources\ReturnApprovalResource;
+use Modules\Returns\Filament\Resources\ReturnDefinitionResource;
+use Modules\Returns\Filament\Resources\ReturnRunResource;
+use Modules\Returns\Filament\Widgets\ReturnsDueThisWeekWidget;
 use Modules\Sanctkb\Filament\Resources\SanctionResource;
 use Modules\Training\Filament\Resources\AttestationCampaignResource;
 use Modules\Training\Filament\Resources\CertificationResource;
@@ -70,6 +74,9 @@ class AdminPanelProvider extends PanelProvider
                 IncidentResource::class,
                 IncidentActionResource::class,
                 IncidentNotificationResource::class,
+                ReturnDefinitionResource::class,
+                ReturnRunResource::class,
+                ReturnApprovalResource::class,
                 AuditEventResource::class,
             ])
             ->pages([
@@ -77,6 +84,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->widgets([
                 OverdueIncidentNotificationsWidget::class,
+                ReturnsDueThisWeekWidget::class,
                 KpiOverviewWidget::class,
                 RecentAuditEventsWidget::class,
                 ControlsDueWidget::class,
@@ -103,6 +111,7 @@ class AdminPanelProvider extends PanelProvider
                 'Risk',
                 'Controls',
                 'Incidents',
+                'Returns',
                 'Training',
                 'System',
             ]);

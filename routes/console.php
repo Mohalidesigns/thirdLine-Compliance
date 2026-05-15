@@ -12,3 +12,4 @@ Schedule::command('policy:advance-states')->daily();
 Schedule::command('controls:run-ccm')->dailyAt('02:00');
 Schedule::command('training:check-overdue')->dailyAt('03:00');
 Schedule::command('incidents:scan-notifications')->hourly();
+Schedule::command('returns:schedule')->dailyAt('06:00');

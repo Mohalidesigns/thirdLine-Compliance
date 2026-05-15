@@ -19,6 +19,7 @@ import {
     ExclamationTriangleIcon,
     AcademicCapIcon,
     FireIcon,
+    DocumentArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import Dropdown from '@/Components/Dropdown';
 import FlashNotification from '@/Components/FlashNotification';
@@ -54,6 +55,7 @@ const mainNavItems: NavItem[] = [
     { label: 'Controls',         routeName: 'controls.index',         Icon: BeakerIcon,            permission: 'controls.view' },
     { label: 'Issues',           routeName: 'issues.index',           Icon: ExclamationTriangleIcon,      permission: 'issues.view' },
     { label: 'Incidents',        routeName: 'incidents.index',        Icon: FireIcon,                     permission: 'incidents.view' },
+    { label: 'Returns',          routeName: 'returns.dashboard',      Icon: DocumentArrowUpIcon,          permission: 'returns.view' },
     { label: 'My Training',      routeName: 'my.training.index',      Icon: AcademicCapIcon,              permission: 'training.view' },
     { label: 'My Attestations',  routeName: 'my.attestations.index',  Icon: ClipboardDocumentCheckIcon,   permission: 'attestations.sign' },
     { label: 'Sanctions KB',     routeName: 'sanctions.index',        Icon: ShieldExclamationIcon },

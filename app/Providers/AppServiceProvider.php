@@ -14,6 +14,9 @@ use App\Policies\IncidentPolicy;
 use App\Policies\IssuePolicy;
 use App\Policies\OperationalLossEventPolicy;
 use App\Policies\PolicyPolicy;
+use App\Policies\ReturnApprovalPolicy;
+use App\Policies\ReturnDefinitionPolicy;
+use App\Policies\ReturnRunPolicy;
 use App\Policies\RiskAssessmentCyclePolicy;
 use App\Policies\RiskPolicy;
 use App\Policies\TrainingEnrollmentPolicy;
@@ -32,6 +35,9 @@ use Modules\Incident\Models\OperationalLossEvent;
 use Modules\Policy\Models\Policy;
 use Modules\Rcsa\Models\Risk;
 use Modules\Rcsa\Models\RiskAssessmentCycle;
+use Modules\Returns\Models\ReturnApproval;
+use Modules\Returns\Models\ReturnDefinition;
+use Modules\Returns\Models\ReturnRun;
 use Modules\Training\Models\AttestationCampaign;
 use Modules\Training\Models\Certification;
 use Modules\Training\Models\Training;
@@ -76,5 +82,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(IncidentAction::class, IncidentActionPolicy::class);
         Gate::policy(IncidentNotification::class, IncidentNotificationPolicy::class);
         Gate::policy(OperationalLossEvent::class, OperationalLossEventPolicy::class);
+        Gate::policy(ReturnDefinition::class, ReturnDefinitionPolicy::class);
+        Gate::policy(ReturnRun::class, ReturnRunPolicy::class);
+        Gate::policy(ReturnApproval::class, ReturnApprovalPolicy::class);
     }
 }

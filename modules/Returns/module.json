@@ -1,0 +1,11 @@
+{
+    "name": "Returns",
+    "alias": "returns",
+    "description": "M10 Regulatory Returns Automation module",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Returns\\Providers\\ReturnsServiceProvider"
+    ],
+    "files": []
+}

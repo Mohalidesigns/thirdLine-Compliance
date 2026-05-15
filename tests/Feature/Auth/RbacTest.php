@@ -32,8 +32,8 @@ it('running RolesAndPermissionsSeeder twice does not duplicate roles', function 
 it('running RolesAndPermissionsSeeder twice does not duplicate permissions', function () {
     (new RolesAndPermissionsSeeder)->run(); // second run
     $permCount = Permission::count();
-    // 44 permissions in the matrix (30 original + 7 Training M15 + 7 Incident M16 permissions)
-    expect($permCount)->toBe(44);
+    // 52 permissions in the matrix (30 original + 7 Training M15 + 7 Incident M16 + 8 Returns M10 permissions)
+    expect($permCount)->toBe(52);
 });
 
 // ─── super_admin bypass (Gate::before) ───────────────────────────────────────

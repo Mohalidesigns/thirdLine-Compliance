@@ -13,6 +13,7 @@ use Modules\Incident\Database\Seeders\IncidentDatabaseSeeder;
 use Modules\Library\Database\Seeders\LibraryDatabaseSeeder;
 use Modules\Policy\Database\Seeders\PolicySeeder;
 use Modules\Rcsa\Database\Seeders\RcsaDatabaseSeeder;
+use Modules\Returns\Database\Seeders\ReturnsDatabaseSeeder;
 use Modules\Sanctkb\Database\Seeders\SanctkbDatabaseSeeder;
 use Modules\Training\Database\Seeders\TrainingDatabaseSeeder;
 
@@ -87,6 +88,7 @@ class DatabaseSeeder extends Seeder
             ControlsDatabaseSeeder::class,
             TrainingDatabaseSeeder::class,
             IncidentDatabaseSeeder::class,
+            ReturnsDatabaseSeeder::class,
         ]);
 
         if (DB::getDriverName() === 'pgsql') {
