@@ -23,6 +23,10 @@ use Modules\Controls\Filament\Resources\ControlResource;
 use Modules\Controls\Filament\Resources\ControlTestResource;
 use Modules\Controls\Filament\Resources\IssueResource;
 use Modules\Controls\Filament\Widgets\ControlsDueWidget;
+use Modules\Incident\Filament\Resources\IncidentActionResource;
+use Modules\Incident\Filament\Resources\IncidentNotificationResource;
+use Modules\Incident\Filament\Resources\IncidentResource;
+use Modules\Incident\Filament\Widgets\OverdueIncidentNotificationsWidget;
 use Modules\Library\Filament\Resources\InstrumentResource;
 use Modules\Library\Filament\Resources\ObligationResource;
 use Modules\Library\Filament\Resources\RegulatorResource;
@@ -63,12 +67,16 @@ class AdminPanelProvider extends PanelProvider
                 TrainingEnrollmentResource::class,
                 AttestationCampaignResource::class,
                 CertificationResource::class,
+                IncidentResource::class,
+                IncidentActionResource::class,
+                IncidentNotificationResource::class,
                 AuditEventResource::class,
             ])
             ->pages([
                 Dashboard::class,
             ])
             ->widgets([
+                OverdueIncidentNotificationsWidget::class,
                 KpiOverviewWidget::class,
                 RecentAuditEventsWidget::class,
                 ControlsDueWidget::class,
@@ -94,6 +102,7 @@ class AdminPanelProvider extends PanelProvider
                 'Policy',
                 'Risk',
                 'Controls',
+                'Incidents',
                 'Training',
                 'System',
             ]);

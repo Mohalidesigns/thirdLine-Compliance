@@ -62,6 +62,9 @@
             "Modules\\Training\\": "modules/Training/app/",
             "Modules\\Training\\Database\\Factories\\": "modules/Training/database/factories/",
             "Modules\\Training\\Database\\Seeders\\": "modules/Training/database/seeders/",
+            "Modules\\Incident\\": "modules/Incident/app/",
+            "Modules\\Incident\\Database\\Factories\\": "modules/Incident/database/factories/",
+            "Modules\\Incident\\Database\\Seeders\\": "modules/Incident/database/seeders/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

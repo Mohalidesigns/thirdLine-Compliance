@@ -1,0 +1,11 @@
+{
+    "name": "Incident",
+    "alias": "incident",
+    "description": "M16 Incident, Breach & Operational Risk module",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Incident\\Providers\\IncidentServiceProvider"
+    ],
+    "files": []
+}

@@ -8,7 +8,11 @@ use App\Policies\AuditEventPolicy;
 use App\Policies\CertificationPolicy;
 use App\Policies\ControlPolicy;
 use App\Policies\ControlTestPolicy;
+use App\Policies\IncidentActionPolicy;
+use App\Policies\IncidentNotificationPolicy;
+use App\Policies\IncidentPolicy;
 use App\Policies\IssuePolicy;
+use App\Policies\OperationalLossEventPolicy;
 use App\Policies\PolicyPolicy;
 use App\Policies\RiskAssessmentCyclePolicy;
 use App\Policies\RiskPolicy;
@@ -21,6 +25,10 @@ use Modules\Audit\Models\AuditEvent;
 use Modules\Controls\Models\Control;
 use Modules\Controls\Models\ControlTest;
 use Modules\Controls\Models\Issue;
+use Modules\Incident\Models\Incident;
+use Modules\Incident\Models\IncidentAction;
+use Modules\Incident\Models\IncidentNotification;
+use Modules\Incident\Models\OperationalLossEvent;
 use Modules\Policy\Models\Policy;
 use Modules\Rcsa\Models\Risk;
 use Modules\Rcsa\Models\RiskAssessmentCycle;
@@ -64,5 +72,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(TrainingEnrollment::class, TrainingEnrollmentPolicy::class);
         Gate::policy(AttestationCampaign::class, AttestationCampaignPolicy::class);
         Gate::policy(Certification::class, CertificationPolicy::class);
+        Gate::policy(Incident::class, IncidentPolicy::class);
+        Gate::policy(IncidentAction::class, IncidentActionPolicy::class);
+        Gate::policy(IncidentNotification::class, IncidentNotificationPolicy::class);
+        Gate::policy(OperationalLossEvent::class, OperationalLossEventPolicy::class);
     }
 }

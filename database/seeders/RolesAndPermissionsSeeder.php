@@ -83,6 +83,15 @@ class RolesAndPermissionsSeeder extends Seeder
         'attestations.sign',
         'certifications.view',
         'certifications.manage',
+
+        // Incidents (M16)
+        'incidents.view',
+        'incidents.create',
+        'incidents.update',
+        'incidents.delete',
+        'incidents.notify',
+        'incidents.attach_evidence',
+        'incidents.loss_register',
     ];
 
     /**
@@ -146,6 +155,15 @@ class RolesAndPermissionsSeeder extends Seeder
             'attestations.sign',
             'certifications.view',
             'certifications.manage',
+
+            // Incidents (M16)
+            'incidents.view',
+            'incidents.create',
+            'incidents.update',
+            'incidents.delete',
+            'incidents.notify',
+            'incidents.attach_evidence',
+            'incidents.loss_register',
         ],
 
         'risk_owner' => [
@@ -167,6 +185,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'training.complete',
             'attestations.sign',
             'certifications.view',
+
+            // Incidents (M16)
+            'incidents.view',
+            'incidents.create',
+            'incidents.update',
+            'incidents.attach_evidence',
+            'incidents.loss_register',
         ],
 
         'control_tester' => [
@@ -189,6 +214,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'training.complete',
             'attestations.sign',
             'certifications.view',
+
+            // Incidents (M16)
+            'incidents.view',
+            'incidents.create',
+            'incidents.attach_evidence',
         ],
 
         'policy_owner' => [
@@ -202,6 +232,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'training.complete',
             'attestations.sign',
             'certifications.view',
+
+            // Incidents (M16)
+            'incidents.view',
+            'incidents.create',
         ],
 
         'auditor' => [
@@ -222,6 +256,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'training.view',
             'attestations.manage',
             'certifications.view',
+
+            // Incidents (M16) — read-only
+            'incidents.view',
         ],
     ];
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Modules\Controls\Database\Seeders\ControlsDatabaseSeeder;
+use Modules\Incident\Database\Seeders\IncidentDatabaseSeeder;
 use Modules\Library\Database\Seeders\LibraryDatabaseSeeder;
 use Modules\Policy\Database\Seeders\PolicySeeder;
 use Modules\Rcsa\Database\Seeders\RcsaDatabaseSeeder;
@@ -85,6 +86,7 @@ class DatabaseSeeder extends Seeder
             RcsaDatabaseSeeder::class,
             ControlsDatabaseSeeder::class,
             TrainingDatabaseSeeder::class,
+            IncidentDatabaseSeeder::class,
         ]);
 
         if (DB::getDriverName() === 'pgsql') {

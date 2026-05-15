@@ -8,5 +8,6 @@
     "Policy": true,
     "Rcsa": true,
     "Controls": true,
-    "Training": true
+    "Training": true,
+    "Incident": true
 }
