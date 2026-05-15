@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useCan } from '@/hooks/usePermission';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PageHeader from '@/Components/PageHeader';
 import FilterBar from '@/Components/FilterBar';
@@ -99,6 +100,10 @@ function relativeTime(isoStr: string): string {
 }
 
 export default function PoliciesIndex({ policies, filters: initialFilters, statuses, categories }: Props) {
+    const canCreate = useCan('policies.create');
+    const canUpdate = useCan('policies.update');
+    const canDelete = useCan('policies.delete');
+
     const [filterValues, setFilterValues] = useState<Record<string, string>>({
         search:   initialFilters.search   ?? '',
         status:   initialFilters.status   ?? '',
@@ -247,14 +252,14 @@ export default function PoliciesIndex({ policies, filters: initialFilters, statu
                             <EyeIcon className="w-4 h-4" aria-hidden />
                         </IconButton>
                     </Link>
-                    {row.state === 'draft' && (
+                    {canUpdate && row.state === 'draft' && (
                         <Link href={route('policies.edit', row.id)}>
                             <IconButton label={`Edit ${row.reference}`} size="sm">
                                 <PencilIcon className="w-4 h-4" aria-hidden />
                             </IconButton>
                         </Link>
                     )}
-                    {row.state === 'draft' && (
+                    {canDelete && row.state === 'draft' && (
                         <IconButton
                             label={`Delete ${row.reference}`}
                             size="sm"
@@ -276,12 +281,14 @@ export default function PoliciesIndex({ policies, filters: initialFilters, statu
                 title="Policies"
                 subtitle="Internal policies and procedures"
                 actions={
-                    <Link href={route('policies.create')}>
-                        <PrimaryButton type="button">
-                            <PlusIcon aria-hidden className="w-4 h-4" />
-                            New Policy
-                        </PrimaryButton>
-                    </Link>
+                    canCreate ? (
+                        <Link href={route('policies.create')}>
+                            <PrimaryButton type="button">
+                                <PlusIcon aria-hidden className="w-4 h-4" />
+                                New Policy
+                            </PrimaryButton>
+                        </Link>
+                    ) : undefined
                 }
             />
 
@@ -307,12 +314,14 @@ export default function PoliciesIndex({ policies, filters: initialFilters, statu
                             title="No policies yet"
                             description="No policies match your filters, or none have been added yet."
                             action={
-                                <Link href={route('policies.create')}>
-                                    <PrimaryButton type="button">
-                                        <PlusIcon aria-hidden className="w-4 h-4" />
-                                        New Policy
-                                    </PrimaryButton>
-                                </Link>
+                                canCreate ? (
+                                    <Link href={route('policies.create')}>
+                                        <PrimaryButton type="button">
+                                            <PlusIcon aria-hidden className="w-4 h-4" />
+                                            New Policy
+                                        </PrimaryButton>
+                                    </Link>
+                                ) : undefined
                             }
                         />
                     }

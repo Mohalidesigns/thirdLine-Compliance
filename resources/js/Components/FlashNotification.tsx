@@ -7,6 +7,7 @@ import {
     InformationCircleIcon,
     XMarkIcon,
 } from '@heroicons/react/24/outline';
+import type { PageProps } from '@/types';
 
 type FlashType = 'success' | 'error' | 'warning' | 'info';
 
@@ -71,7 +72,7 @@ const variantConfig: Record<FlashType, {
 let nextId = 0;
 
 export default function FlashNotification() {
-    const { flash } = usePage<{ flash: Flash; auth: { user: { id: number; name: string; email: string } } }>().props;
+    const { flash } = usePage<PageProps>().props;
     const [toasts, setToasts] = useState<Toast[]>([]);
 
     useEffect(() => {

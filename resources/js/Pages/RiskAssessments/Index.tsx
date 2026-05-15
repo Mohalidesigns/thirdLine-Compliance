@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useCan } from '@/hooks/usePermission';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PageHeader from '@/Components/PageHeader';
 import FilterBar from '@/Components/FilterBar';
@@ -85,6 +86,8 @@ function relativeTime(isoStr: string): string {
 }
 
 export default function RiskAssessmentsIndex({ cycles, filters: initialFilters, lobs, states, years }: Props) {
+    const canCreate = useCan('cycles.create');
+
     const [filterValues, setFilterValues] = useState<Record<string, string>>({
         search: initialFilters.search ?? '',
         lob:    initialFilters.lob    ?? '',
@@ -241,12 +244,14 @@ export default function RiskAssessmentsIndex({ cycles, filters: initialFilters, 
                 title="Risk Assessments"
                 subtitle="RCSA cycles and risk registers"
                 actions={
-                    <Link href={route('risk-assessments.create')}>
-                        <PrimaryButton type="button">
-                            <PlusIcon aria-hidden className="w-4 h-4" />
-                            New Cycle
-                        </PrimaryButton>
-                    </Link>
+                    canCreate ? (
+                        <Link href={route('risk-assessments.create')}>
+                            <PrimaryButton type="button">
+                                <PlusIcon aria-hidden className="w-4 h-4" />
+                                New Cycle
+                            </PrimaryButton>
+                        </Link>
+                    ) : undefined
                 }
             />
 
@@ -272,12 +277,14 @@ export default function RiskAssessmentsIndex({ cycles, filters: initialFilters, 
                             title="No assessment cycles yet"
                             description="Create a new RCSA cycle to begin assessing risks across your lines of business."
                             action={
-                                <Link href={route('risk-assessments.create')}>
-                                    <PrimaryButton type="button">
-                                        <PlusIcon aria-hidden className="w-4 h-4" />
-                                        New Cycle
-                                    </PrimaryButton>
-                                </Link>
+                                canCreate ? (
+                                    <Link href={route('risk-assessments.create')}>
+                                        <PrimaryButton type="button">
+                                            <PlusIcon aria-hidden className="w-4 h-4" />
+                                            New Cycle
+                                        </PrimaryButton>
+                                    </Link>
+                                ) : undefined
                             }
                         />
                     }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useCan } from '@/hooks/usePermission';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PageHeader from '@/Components/PageHeader';
 import FilterBar from '@/Components/FilterBar';
@@ -95,6 +96,9 @@ export default function ControlsIndex({
     due_count,
     overdue_count,
 }: Props) {
+    const canCreate = useCan('controls.create');
+    const canTest = useCan('controls.test');
+
     const [filterValues, setFilterValues] = useState<Record<string, string>>({
         search:    initialFilters.search    ?? '',
         type:      initialFilters.type      ?? '',
@@ -242,11 +246,13 @@ export default function ControlsIndex({
             header: '',
             render: (row) => (
                 <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Link href={route('controls.test', row.id)}>
-                        <IconButton label={`Test ${row.reference}`} size="sm">
-                            <ClipboardDocumentCheckIcon className="w-4 h-4" aria-hidden />
-                        </IconButton>
-                    </Link>
+                    {canTest && (
+                        <Link href={route('controls.test', row.id)}>
+                            <IconButton label={`Test ${row.reference}`} size="sm">
+                                <ClipboardDocumentCheckIcon className="w-4 h-4" aria-hidden />
+                            </IconButton>
+                        </Link>
+                    )}
                 </div>
             ),
         },
@@ -285,12 +291,14 @@ export default function ControlsIndex({
                 title="Controls"
                 subtitle="Internal controls register and testing schedule"
                 actions={
-                    <Link href={route('controls.create')}>
-                        <PrimaryButton type="button">
-                            <PlusIcon aria-hidden className="w-4 h-4" />
-                            Add Control
-                        </PrimaryButton>
-                    </Link>
+                    canCreate ? (
+                        <Link href={route('controls.create')}>
+                            <PrimaryButton type="button">
+                                <PlusIcon aria-hidden className="w-4 h-4" />
+                                Add Control
+                            </PrimaryButton>
+                        </Link>
+                    ) : undefined
                 }
             />
 
@@ -316,12 +324,14 @@ export default function ControlsIndex({
                             title="No controls found"
                             description="No controls match your filters, or none have been added yet."
                             action={
-                                <Link href={route('controls.create')}>
-                                    <PrimaryButton type="button">
-                                        <PlusIcon aria-hidden className="w-4 h-4" />
-                                        Add Control
-                                    </PrimaryButton>
-                                </Link>
+                                canCreate ? (
+                                    <Link href={route('controls.create')}>
+                                        <PrimaryButton type="button">
+                                            <PlusIcon aria-hidden className="w-4 h-4" />
+                                            Add Control
+                                        </PrimaryButton>
+                                    </Link>
+                                ) : undefined
                             }
                         />
                     }

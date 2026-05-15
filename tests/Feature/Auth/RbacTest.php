@@ -179,6 +179,53 @@ it('auditor can read all modules but write nothing', function () {
     ])->assertForbidden();
 });
 
+// ─── Inertia shared auth.permissions payload ─────────────────────────────────
+
+it('shares permissions list in inertia auth payload for control_tester', function () {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $user->assignRole('control_tester');
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) =>
+            $page->where('auth.permissions', fn ($perms) =>
+                collect($perms)->contains('controls.view') &&
+                collect($perms)->contains('issues.create') &&
+                ! collect($perms)->contains('controls.create')
+            )
+        );
+});
+
+it('shares empty permissions array in inertia auth payload for roleless user', function () {
+    // A user with no role gets an empty permissions array (not null, not missing).
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    // No role assigned — getAllPermissions() returns empty collection.
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) =>
+            $page->where('auth.permissions', fn ($perms) =>
+                is_array((array) $perms) && collect($perms)->isEmpty()
+            )
+        );
+});
+
+it('auditor receives policies.view and controls.view but not policies.create', function () {
+    $auditor = User::factory()->create(['email_verified_at' => now()]);
+    $auditor->assignRole('auditor');
+
+    $this->actingAs($auditor)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) =>
+            $page->where('auth.permissions', fn ($perms) =>
+                collect($perms)->contains('policies.view') &&
+                collect($perms)->contains('controls.view') &&
+                ! collect($perms)->contains('policies.create') &&
+                ! collect($perms)->contains('controls.create')
+            )
+        );
+});
+
 // ─── risk_owner cycle-state guard ────────────────────────────────────────────
 
 it('risk_owner can update risk in data_capture but not in in_review', function () {

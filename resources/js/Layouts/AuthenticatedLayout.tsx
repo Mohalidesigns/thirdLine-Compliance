@@ -20,6 +20,7 @@ import {
 import Dropdown from '@/Components/Dropdown';
 import FlashNotification from '@/Components/FlashNotification';
 import { PageProps } from '@/types';
+import { usePermissions } from '@/hooks/usePermission';
 
 interface Props {
     children: React.ReactNode;
@@ -37,18 +38,20 @@ interface NavItem {
     label: string;
     routeName: string;
     Icon: HeroIcon;
+    /** When set, the item is only visible to users who have this permission. */
+    permission?: string;
 }
 
 const mainNavItems: NavItem[] = [
-    { label: 'Dashboard',        routeName: 'dashboard',             Icon: Squares2X2Icon },
-    { label: 'Library',          routeName: 'instruments.index',     Icon: BookOpenIcon },
-    { label: 'Obligations',      routeName: 'obligations.index',     Icon: ClipboardDocumentListIcon },
-    { label: 'Policies',         routeName: 'policies.index',        Icon: DocumentTextIcon },
-    { label: 'Risk Assessments', routeName: 'risk-assessments.index',Icon: ShieldExclamationIcon },
-    { label: 'Controls',         routeName: 'controls.index',        Icon: BeakerIcon },
-    { label: 'Issues',           routeName: 'issues.index',          Icon: ExclamationTriangleIcon },
-    { label: 'Sanctions KB',     routeName: 'sanctions.index',       Icon: ShieldExclamationIcon },
-    { label: 'Calendar',         routeName: 'calendar.index',        Icon: CalendarDaysIcon },
+    { label: 'Dashboard',        routeName: 'dashboard',              Icon: Squares2X2Icon },
+    { label: 'Library',          routeName: 'instruments.index',      Icon: BookOpenIcon },
+    { label: 'Obligations',      routeName: 'obligations.index',      Icon: ClipboardDocumentListIcon },
+    { label: 'Policies',         routeName: 'policies.index',         Icon: DocumentTextIcon,      permission: 'policies.view' },
+    { label: 'Risk Assessments', routeName: 'risk-assessments.index', Icon: ShieldExclamationIcon, permission: 'cycles.view' },
+    { label: 'Controls',         routeName: 'controls.index',         Icon: BeakerIcon,            permission: 'controls.view' },
+    { label: 'Issues',           routeName: 'issues.index',           Icon: ExclamationTriangleIcon, permission: 'issues.view' },
+    { label: 'Sanctions KB',     routeName: 'sanctions.index',        Icon: ShieldExclamationIcon },
+    { label: 'Calendar',         routeName: 'calendar.index',         Icon: CalendarDaysIcon },
 ];
 
 const accountNavItems: NavItem[] = [
@@ -81,6 +84,11 @@ function SidebarNavItem({
 
 export default function AuthenticatedLayout({ children, header }: Props) {
     const { auth } = usePage<PageProps>().props;
+    const permissions = usePermissions();
+
+    const visibleNavItems = mainNavItems.filter(
+        (item) => !item.permission || permissions.includes(item.permission),
+    );
 
     const [collapsed, setCollapsed] = useState<boolean>(() => {
         if (typeof window !== 'undefined') {
@@ -146,7 +154,7 @@ export default function AuthenticatedLayout({ children, header }: Props) {
                         </p>
                     )}
                     <div className="space-y-0.5">
-                        {mainNavItems.map((item) => (
+                        {visibleNavItems.map((item) => (
                             <SidebarNavItem
                                 key={item.routeName}
                                 item={item}
@@ -253,10 +261,10 @@ export default function AuthenticatedLayout({ children, header }: Props) {
                                         className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
                                         style={{ backgroundColor: 'var(--color-primary)' }}
                                     >
-                                        {auth.user.name.charAt(0).toUpperCase()}
+                                        {auth.user?.name.charAt(0).toUpperCase()}
                                     </span>
                                     <span className="hidden sm:block max-w-[120px] truncate">
-                                        {auth.user.name}
+                                        {auth.user?.name}
                                     </span>
                                     <svg
                                         className="w-4 h-4 text-gray-400"
@@ -276,7 +284,7 @@ export default function AuthenticatedLayout({ children, header }: Props) {
                                 <div className="px-4 py-2 border-b border-gray-100">
                                     <p className="text-xs text-gray-500">Signed in as</p>
                                     <p className="text-sm font-semibold text-gray-800 truncate">
-                                        {auth.user.email}
+                                        {auth.user?.email}
                                     </p>
                                 </div>
                                 <Dropdown.Link href={route('profile.edit')}>Profile</Dropdown.Link>
