@@ -38,6 +38,7 @@ class Policy extends Model
         'next_review_date',
         'summary',
         'body',
+        'created_by',
     ];
 
     protected $attributes = [

@@ -69,10 +69,11 @@ class RcsaService
         }
 
         if (! empty($filters['appetite_breached'])) {
+            $thresholdMap = $this->scoring->thresholdMapForCycle($cycleId);
             $riskIds = Risk::withoutGlobalScopes()
                 ->where('cycle_id', $cycleId)
                 ->get()
-                ->filter(fn ($r) => $this->scoring->breachesAppetite($r->id))
+                ->filter(fn ($r) => $this->scoring->breachesAppetiteForLoadedRisk($r, $thresholdMap))
                 ->pluck('id');
             $query->whereIn('id', $riskIds);
         }
@@ -175,7 +176,8 @@ class RcsaService
             }
         }
 
-        $appetiteBreaches = $risks->filter(fn ($r) => $this->scoring->breachesAppetite($r->id))->count();
+        $thresholdMap = $this->scoring->thresholdMapForCycle($cycleId);
+        $appetiteBreaches = $risks->filter(fn ($r) => $this->scoring->breachesAppetiteForLoadedRisk($r, $thresholdMap))->count();
 
         $cycle = RiskAssessmentCycle::withoutGlobalScopes()->find($cycleId);
         $daysToSla = $cycle?->slaDaysRemaining();

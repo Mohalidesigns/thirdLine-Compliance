@@ -8,6 +8,7 @@ import DataTable, { Column } from '@/Components/DataTable';
 import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import EmptyState from '@/Components/EmptyState';
+import PrimaryButton from '@/Components/PrimaryButton';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 interface PaginationLink {
@@ -44,6 +45,7 @@ interface Props {
     severities: { value: string; label: string }[];
     statuses: { value: string; label: string }[];
     source_types: { value: string; label: string }[];
+    can: { create: boolean };
 }
 
 type StatusVariant = 'critical' | 'high' | 'medium' | 'low' | 'info' | 'completed' | 'draft' | 'overdue' | 'ai';
@@ -77,6 +79,7 @@ export default function IssuesIndex({
     severities,
     statuses,
     source_types,
+    can,
 }: Props) {
     const [filterValues, setFilterValues] = useState<Record<string, string>>({
         search:      initialFilters.search      ?? '',
@@ -208,6 +211,13 @@ export default function IssuesIndex({
             <PageHeader
                 title="Issues"
                 subtitle="Compliance issues and remediation tracker"
+                actions={
+                    can.create ? (
+                        <Link href={route('issues.create')}>
+                            <PrimaryButton type="button">Raise issue</PrimaryButton>
+                        </Link>
+                    ) : undefined
+                }
             />
 
             <FilterBar

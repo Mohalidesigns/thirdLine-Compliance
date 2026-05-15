@@ -7,6 +7,7 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Modules\Controls\Ccm\Rules\OverdueObligationsCcmRule;
+use Modules\Controls\Ccm\Rules\StalePoliciesCcmRule;
 use Modules\Controls\Models\Control;
 use Modules\Controls\Models\Issue;
 use Modules\Controls\Services\ControlsService;
@@ -134,7 +135,7 @@ it('does NOT create an Issue on passed or partial test', function () {
     expect(Issue::count() - $issuesBefore)->toBe(0);
 });
 
-function seedObligationForCcmTest(string $reference): void
+function seedObligationForCcmTest(string $reference, int $overdueDays = 5): void
 {
     $regulatorId = DB::table('regulators')->insertGetId(['code' => 'T'.uniqid(), 'name' => 'Test Regulator', 'created_at' => now(), 'updated_at' => now()]);
     $typeId = DB::table('instrument_types')->insertGetId(['name' => 'TestType'.uniqid(), 'created_at' => now(), 'updated_at' => now()]);
@@ -163,8 +164,24 @@ function seedObligationForCcmTest(string $reference): void
         'reference' => $reference,
         'title' => 'Test Overdue Obligation',
         'description' => 'An overdue obligation for testing',
-        'next_due_date' => now()->subDays(5)->toDateString(),
+        'next_due_date' => now()->subDays($overdueDays)->toDateString(),
         'status' => 'pending',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+}
+
+function seedPolicyForCcmTest(int $staleDays): void
+{
+    DB::table('policies')->insert([
+        'tenant_id' => 1,
+        'reference' => 'POL-STALE-'.uniqid(),
+        'title' => 'Stale Policy '.uniqid(),
+        'category' => 'governance',
+        'owner_team' => 'Compliance',
+        'version' => 1,
+        'state' => 'in_force',
+        'next_review_date' => now()->subDays($staleDays)->toDateString(),
         'created_at' => now(),
         'updated_at' => now(),
     ]);
@@ -450,4 +467,234 @@ it('risk_owner can view issues but cannot transition one', function () {
     $this->actingAs($riskOwner)
         ->patch("/issues/{$issue->id}", ['status' => 'in_progress'])
         ->assertForbidden();
+});
+
+// ─── Task 2: CCM rule severity based on overdue days ─────────────────────────
+
+it('OverdueObligationsCcmRule assigns low severity for < 30 days overdue', function () {
+    seedObligationForCcmTest('OBL-SEV-LOW', 5);
+
+    $rule = new OverdueObligationsCcmRule;
+    $result = $rule->evaluate();
+
+    expect($result['breached'])->toBeTrue();
+    $breach = $result['breaches'][0];
+    expect($breach['severity'])->toBe('low');
+});
+
+it('OverdueObligationsCcmRule assigns medium severity for 30-90 days overdue', function () {
+    seedObligationForCcmTest('OBL-SEV-MED', 45);
+
+    $rule = new OverdueObligationsCcmRule;
+    $result = $rule->evaluate();
+
+    expect($result['breached'])->toBeTrue();
+    $breach = $result['breaches'][0];
+    expect($breach['severity'])->toBe('medium');
+});
+
+it('OverdueObligationsCcmRule assigns high severity for > 90 days overdue', function () {
+    seedObligationForCcmTest('OBL-SEV-HIGH', 120);
+
+    $rule = new OverdueObligationsCcmRule;
+    $result = $rule->evaluate();
+
+    expect($result['breached'])->toBeTrue();
+    $breach = $result['breaches'][0];
+    expect($breach['severity'])->toBe('high');
+});
+
+it('StalePoliciesCcmRule assigns low severity for < 30 days stale', function () {
+    seedPolicyForCcmTest(5);
+
+    $rule = new StalePoliciesCcmRule;
+    $result = $rule->evaluate();
+
+    expect($result['breached'])->toBeTrue();
+    expect($result['breaches'][0]['severity'])->toBe('low');
+});
+
+it('StalePoliciesCcmRule assigns medium severity for 30-90 days stale', function () {
+    seedPolicyForCcmTest(60);
+
+    $rule = new StalePoliciesCcmRule;
+    $result = $rule->evaluate();
+
+    expect($result['breached'])->toBeTrue();
+    expect($result['breaches'][0]['severity'])->toBe('medium');
+});
+
+it('StalePoliciesCcmRule assigns high severity for > 90 days stale', function () {
+    seedPolicyForCcmTest(100);
+
+    $rule = new StalePoliciesCcmRule;
+    $result = $rule->evaluate();
+
+    expect($result['breached'])->toBeTrue();
+    expect($result['breaches'][0]['severity'])->toBe('high');
+});
+
+it('controls:run-ccm creates Issue with correct severity and linked_obligation_id', function () {
+    seedObligationForCcmTest('OBL-END2END', 100); // > 90 days → high
+
+    $this->artisan('controls:run-ccm')->assertExitCode(0);
+
+    $issue = Issue::where('source_type', 'ccm_rule')->orderByDesc('created_at')->first();
+
+    expect($issue)->not->toBeNull();
+    expect($issue->severity)->toBe('high');
+    expect($issue->linked_obligation_id)->not->toBeNull();
+});
+
+// ─── Task 3: CCM rules respect tenant scope ───────────────────────────────────
+
+it('controls:run-ccm does not cross-contaminate Issues between tenants', function () {
+    // Tenant 1 obligation — already seeded by helper (tenant_id=1)
+    seedObligationForCcmTest('OBL-T1', 5);
+
+    // Tenant 2 obligation — inserted directly with tenant_id=2
+    $regulatorId = DB::table('regulators')->insertGetId(['code' => 'T2REG', 'name' => 'Regulator T2', 'created_at' => now(), 'updated_at' => now()]);
+    $typeId = DB::table('instrument_types')->insertGetId(['name' => 'TypeT2', 'created_at' => now(), 'updated_at' => now()]);
+    $natureId = DB::table('natures')->insertGetId(['name' => 'NatureT2', 'created_at' => now(), 'updated_at' => now()]);
+    $statusId = DB::table('statuses')->insertGetId(['name' => 'StatusT2', 'created_at' => now(), 'updated_at' => now()]);
+    $areaId = DB::table('areas_of_focus')->insertGetId(['name' => 'AreaT2', 'created_at' => now(), 'updated_at' => now()]);
+    $ratingId = DB::table('risk_ratings')->insertGetId(['name' => 'LowT2', 'created_at' => now(), 'updated_at' => now()]);
+
+    $instrId = DB::table('instruments')->insertGetId([
+        'tenant_id' => 2,
+        'source_title' => 'T2 Instrument',
+        'regulator_id' => $regulatorId,
+        'instrument_type_id' => $typeId,
+        'nature_id' => $natureId,
+        'status_id' => $statusId,
+        'area_of_focus_id' => $areaId,
+        'risk_rating_id' => $ratingId,
+        'applicability' => 'Yes',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    DB::table('obligations')->insert([
+        'tenant_id' => 2,
+        'instrument_id' => $instrId,
+        'reference' => 'OBL-T2',
+        'title' => 'Tenant 2 Obligation',
+        'description' => 'Cross-tenant test',
+        'next_due_date' => now()->subDays(5)->toDateString(),
+        'status' => 'pending',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $issuesBefore = Issue::withoutGlobalScopes()->count();
+
+    // Run only for tenant 1.
+    $this->artisan('controls:run-ccm --tenant=1')->assertExitCode(0);
+
+    $issuesAfter = Issue::withoutGlobalScopes()->get();
+
+    // All created Issues should have tenant_id = 1.
+    $crossTenantIssues = $issuesAfter->where('tenant_id', 2);
+    expect($crossTenantIssues->count())->toBe(0, 'No Issues should have been created for tenant 2 when running with --tenant=1.');
+
+    // At least one Issue was created for tenant 1.
+    $tenant1Issues = $issuesAfter->where('tenant_id', 1)->where('source_type', 'ccm_rule');
+    expect($tenant1Issues->count())->toBeGreaterThan(0);
+});
+
+// ─── Task 5: IssuesController::store() ───────────────────────────────────────
+
+it('compliance_officer can create an issue via POST /issues', function () {
+    $user = makeControlUser(); // compliance_officer
+    $control = makeControl(['status' => 'active']);
+
+    $this->actingAs($user)
+        ->post('/issues', [
+            'title' => 'Manual compliance gap',
+            'description' => 'Found during review.',
+            'severity' => 'high',
+            'linked_control_id' => $control->id,
+        ])
+        ->assertRedirect();
+
+    $issue = Issue::where('title', 'Manual compliance gap')->first();
+    expect($issue)->not->toBeNull();
+    expect($issue->source_type)->toBe('manual');
+    expect($issue->tenant_id)->toBe(1);
+});
+
+it('control_tester can create an issue', function () {
+    $tester = User::factory()->create(['email_verified_at' => now()]);
+    $tester->assignRole('control_tester');
+
+    $this->actingAs($tester)
+        ->post('/issues', [
+            'title' => 'Tester found an issue',
+            'severity' => 'medium',
+        ])
+        ->assertRedirect();
+
+    expect(Issue::where('title', 'Tester found an issue')->exists())->toBeTrue();
+});
+
+it('risk_owner cannot create an issue', function () {
+    $riskOwner = User::factory()->create(['email_verified_at' => now()]);
+    $riskOwner->assignRole('risk_owner');
+
+    $this->actingAs($riskOwner)
+        ->post('/issues', [
+            'title' => 'Unauthorized',
+            'severity' => 'low',
+        ])
+        ->assertForbidden();
+});
+
+it('auditor cannot create an issue', function () {
+    $auditor = User::factory()->create(['email_verified_at' => now()]);
+    $auditor->assignRole('auditor');
+
+    $this->actingAs($auditor)
+        ->post('/issues', [
+            'title' => 'Unauthorized',
+            'severity' => 'low',
+        ])
+        ->assertForbidden();
+});
+
+it('issue store validation: empty title returns 422 with title error', function () {
+    $user = makeControlUser();
+
+    $this->actingAs($user)
+        ->post('/issues', [
+            'title' => '',
+            'severity' => 'medium',
+        ])
+        ->assertSessionHasErrors('title');
+});
+
+it('issue store validation: invalid severity returns 422 with severity error', function () {
+    $user = makeControlUser();
+
+    $this->actingAs($user)
+        ->post('/issues', [
+            'title' => 'Valid title',
+            'severity' => 'extreme',
+        ])
+        ->assertSessionHasErrors('severity');
+});
+
+it('manually created issue has source_type manual and correct tenant_id', function () {
+    $user = makeControlUser();
+
+    $this->actingAs($user)
+        ->post('/issues', [
+            'title' => 'Source type check',
+            'severity' => 'low',
+        ])
+        ->assertRedirect();
+
+    $issue = Issue::where('title', 'Source type check')->firstOrFail();
+    expect($issue->source_type)->toBe('manual');
+    expect($issue->source_id)->toBeNull();
+    expect($issue->tenant_id)->toBe(1);
 });

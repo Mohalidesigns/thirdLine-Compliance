@@ -261,3 +261,86 @@ it('auditor can view policies but cannot create one', function () {
         'owner_team' => 'Audit',
     ])->assertForbidden();
 });
+
+// ─── Task 4: created_by column + PolicyPolicy enforcement ─────────────────────
+
+it('policy_owner can edit their own draft policy', function () {
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $owner->assignRole('policy_owner');
+
+    // Create via the store route so created_by is stamped.
+    $this->actingAs($owner)->post('/policies', [
+        'title' => 'My Own Draft',
+        'category' => 'governance',
+        'owner_team' => 'Legal',
+    ])->assertRedirect();
+
+    $policy = Policy::where('title', 'My Own Draft')->firstOrFail();
+    expect($policy->created_by)->toBe($owner->id);
+
+    $this->actingAs($owner)
+        ->put("/policies/{$policy->id}", [
+            'title' => 'My Own Draft Updated',
+            'category' => 'governance',
+            'owner_team' => 'Legal',
+        ])
+        ->assertRedirect();
+
+    expect($policy->fresh()->title)->toBe('My Own Draft Updated');
+});
+
+it('policy_owner cannot edit someone elses draft policy', function () {
+    $owner1 = User::factory()->create(['email_verified_at' => now()]);
+    $owner1->assignRole('policy_owner');
+
+    $owner2 = User::factory()->create(['email_verified_at' => now()]);
+    $owner2->assignRole('policy_owner');
+
+    // owner1 creates the policy.
+    $this->actingAs($owner1)->post('/policies', [
+        'title' => 'Owner1 Policy',
+        'category' => 'governance',
+        'owner_team' => 'Legal',
+    ])->assertRedirect();
+
+    $policy = Policy::where('title', 'Owner1 Policy')->firstOrFail();
+    expect($policy->created_by)->toBe($owner1->id);
+
+    // owner2 tries to edit it — must be forbidden.
+    $this->actingAs($owner2)
+        ->put("/policies/{$policy->id}", [
+            'title' => 'Hijacked Title',
+            'category' => 'governance',
+            'owner_team' => 'Legal',
+        ])
+        ->assertForbidden();
+});
+
+it('policy_owner cannot edit their own policy once it is in_review', function () {
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $owner->assignRole('policy_owner');
+
+    $this->actingAs($owner)->post('/policies', [
+        'title' => 'Going for Review',
+        'category' => 'governance',
+        'owner_team' => 'Legal',
+    ])->assertRedirect();
+
+    $policy = Policy::where('title', 'Going for Review')->firstOrFail();
+
+    // Submit for review.
+    $this->actingAs($owner)->post("/policies/{$policy->id}/transition", [
+        'to' => 'in_review',
+    ])->assertRedirect();
+
+    expect($policy->fresh()->state::$name)->toBe('in_review');
+
+    // Attempt to edit — must be 403.
+    $this->actingAs($owner)
+        ->put("/policies/{$policy->id}", [
+            'title' => 'Sneaky update',
+            'category' => 'governance',
+            'owner_team' => 'Legal',
+        ])
+        ->assertForbidden();
+});

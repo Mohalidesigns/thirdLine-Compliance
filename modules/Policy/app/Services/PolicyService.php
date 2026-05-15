@@ -51,6 +51,10 @@ class PolicyService
 
     public function create(array $data): Policy
     {
+        if (! isset($data['created_by']) && auth()->check()) {
+            $data['created_by'] = auth()->id();
+        }
+
         return Policy::create($data);
     }
 

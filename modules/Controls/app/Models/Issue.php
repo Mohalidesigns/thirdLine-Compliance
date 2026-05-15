@@ -31,6 +31,8 @@ class Issue extends Model
         'owner_team',
         'linked_control_id',
         'linked_risk_id',
+        'linked_obligation_id',
+        'linked_policy_id',
         'resolution_notes',
         'resolved_at',
     ];
@@ -41,6 +43,8 @@ class Issue extends Model
         'source_id' => 'integer',
         'linked_control_id' => 'integer',
         'linked_risk_id' => 'integer',
+        'linked_obligation_id' => 'integer',
+        'linked_policy_id' => 'integer',
     ];
 
     protected static function auditActionPrefix(): string

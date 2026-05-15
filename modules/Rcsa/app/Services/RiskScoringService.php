@@ -43,6 +43,78 @@ class RiskScoringService
         return $threshold?->acceptable_rating;
     }
 
+    /**
+     * Build a threshold lookup map for a cycle — single DB query.
+     *
+     * Returns an array keyed by "{lob}:{category}" with values:
+     *   ['acceptable_rating' => 'medium', 'breach_action' => '...']
+     *
+     * Call once per request; pass the result into breachesAppetiteForLoadedRisk()
+     * for each row so no per-row DB hits occur.
+     *
+     * @return array<string, array{acceptable_rating: string, breach_action: string|null}>
+     */
+    public function thresholdMapForCycle(int $cycleId): array
+    {
+        $cycle = RiskAssessmentCycle::withoutGlobalScopes()->find($cycleId);
+
+        if ($cycle === null) {
+            return [];
+        }
+
+        $thresholds = RiskAppetiteThreshold::withoutGlobalScopes()
+            ->where('lob', $cycle->lob)
+            ->get(['lob', 'category', 'acceptable_rating', 'breach_action']);
+
+        $map = [];
+        foreach ($thresholds as $t) {
+            $map["{$t->lob}:{$t->category}"] = [
+                'acceptable_rating' => $t->acceptable_rating,
+                'breach_action' => $t->breach_action,
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Pure logic check — zero DB queries.
+     *
+     * The $risk must have residual_rating and category already loaded.
+     * The $thresholdMap must be built via thresholdMapForCycle() first,
+     * passing the cycle's lob so the keys are "{lob}:{category}".
+     *
+     * @param  array<string, array{acceptable_rating: string, breach_action: string|null}>  $thresholdMap
+     */
+    public function breachesAppetiteForLoadedRisk(Risk $risk, array $thresholdMap): bool
+    {
+        if ($risk->residual_rating === null) {
+            return false;
+        }
+
+        // The map is pre-keyed by lob:category. We need the cycle's lob.
+        // The map is built for a specific cycle's lob, so iterate to find matching category.
+        // Keys are "{lob}:{category}" — extract any key for this category.
+        $acceptable = null;
+        foreach ($thresholdMap as $key => $entry) {
+            [, $cat] = explode(':', $key, 2);
+            if ($cat === $risk->category) {
+                $acceptable = $entry['acceptable_rating'];
+                break;
+            }
+        }
+
+        if ($acceptable === null) {
+            return false;
+        }
+
+        return (self::RATING_ORDER[$risk->residual_rating] ?? 0) > (self::RATING_ORDER[$acceptable] ?? 0);
+    }
+
+    /**
+     * Single-risk appetite check. Hits the DB to load the risk and cycle.
+     * Prefer breachesAppetiteForLoadedRisk() when iterating many risks.
+     */
     public function breachesAppetite(int $riskId): bool
     {
         $risk = Risk::withoutGlobalScopes()->find($riskId);

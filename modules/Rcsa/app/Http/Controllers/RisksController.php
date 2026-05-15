@@ -39,7 +39,11 @@ class RisksController extends Controller
             $paginated = $this->service->paginatedRisks($cycleId, $filters);
         }
 
-        $risks = $paginated?->through(fn (Risk $r) => $this->formatRiskRow($r));
+        $thresholdMap = ($cycleId > 0)
+            ? $this->scoring->thresholdMapForCycle($cycleId)
+            : [];
+
+        $risks = $paginated?->through(fn (Risk $r) => $this->formatRiskRow($r, $thresholdMap));
 
         return Inertia::render('Risks/Index', [
             'risks' => $risks,
@@ -219,8 +223,11 @@ class RisksController extends Controller
         ];
     }
 
-    /** @return array<string, mixed> */
-    private function formatRiskRow(Risk $risk): array
+    /**
+     * @param  array<string, array{acceptable_rating: string, breach_action: string|null}>  $thresholdMap
+     * @return array<string, mixed>
+     */
+    private function formatRiskRow(Risk $risk, array $thresholdMap = []): array
     {
         return [
             'id' => $risk->id,
@@ -233,7 +240,9 @@ class RisksController extends Controller
             'inherent_rating' => $risk->inherent_rating,
             'residual_score' => $risk->residual_score,
             'residual_rating' => $risk->residual_rating,
-            'breaches_appetite' => $this->scoring->breachesAppetite($risk->id),
+            'breaches_appetite' => $thresholdMap !== []
+                ? $this->scoring->breachesAppetiteForLoadedRisk($risk, $thresholdMap)
+                : $this->scoring->breachesAppetite($risk->id),
         ];
     }
 

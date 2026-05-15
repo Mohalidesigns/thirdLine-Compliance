@@ -346,3 +346,84 @@ it('auditor can view risk assessments but cannot create a cycle', function () {
         'methodology' => '3x3',
     ])->assertForbidden();
 });
+
+// ─── N+1 fix: query count does not scale with risk row count ──────────────────
+
+it('cycle show page query count does not scale with number of risks (N+1 fix)', function () {
+    $user = makeRcsaUser();
+    $cycle = makeCycle(['lob' => 'Retail', 'methodology' => '3x3']);
+
+    RiskAppetiteThreshold::create([
+        'tenant_id' => 1,
+        'lob' => 'Retail',
+        'category' => 'operational',
+        'acceptable_rating' => 'medium',
+        'breach_action' => 'Escalate',
+    ]);
+
+    // Create 30 risks — all with scores to exercise the breach check.
+    for ($i = 0; $i < 30; $i++) {
+        makeRisk($cycle, [
+            'category' => 'operational',
+            'residual_likelihood' => 3,
+            'residual_impact' => 3,
+            'inherent_likelihood' => 3,
+            'inherent_impact' => 3,
+        ]);
+    }
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    $this->actingAs($user)
+        ->get("/risk-assessments/{$cycle->id}")
+        ->assertOk();
+
+    $queryCount = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    // Before the fix: ~75+ queries (3 per risk). After: < 25.
+    expect($queryCount)->toBeLessThan(25, "Expected < 25 queries but got {$queryCount}. N+1 may still be present.");
+});
+
+it('breachesAppetiteForLoadedRisk is pure-logic with pre-built threshold map', function () {
+    $service = app(RiskScoringService::class);
+
+    $cycle = makeCycle(['lob' => 'Retail', 'methodology' => '3x3']);
+
+    RiskAppetiteThreshold::create([
+        'tenant_id' => 1,
+        'lob' => 'Retail',
+        'category' => 'aml',
+        'acceptable_rating' => 'medium',
+        'breach_action' => 'Escalate',
+    ]);
+
+    $map = $service->thresholdMapForCycle($cycle->id);
+
+    $nonBreachingRisk = makeRisk($cycle, [
+        'category' => 'aml',
+        'residual_likelihood' => 2,
+        'residual_impact' => 2, // score=4, rating=medium — at appetite, not above
+    ]);
+
+    $breachingRisk = makeRisk($cycle, [
+        'category' => 'aml',
+        'residual_likelihood' => 3,
+        'residual_impact' => 3, // score=9, rating=critical — above medium appetite
+    ]);
+
+    // These must produce zero additional DB queries.
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    $r1 = $service->breachesAppetiteForLoadedRisk($nonBreachingRisk, $map);
+    $r2 = $service->breachesAppetiteForLoadedRisk($breachingRisk, $map);
+
+    $queryCount = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($r1)->toBeFalse();
+    expect($r2)->toBeTrue();
+    expect($queryCount)->toBe(0, "breachesAppetiteForLoadedRisk should issue zero queries but issued {$queryCount}.");
+});

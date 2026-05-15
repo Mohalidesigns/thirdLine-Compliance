@@ -11,15 +11,78 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Modules\Controls\Http\Requests\StoreIssueRequest;
 use Modules\Controls\Http\Requests\UpdateIssueRequest;
+use Modules\Controls\Models\Control;
 use Modules\Controls\Models\Issue;
 use Modules\Controls\Services\ControlsService;
+use Modules\Library\Models\Obligation;
+use Modules\Rcsa\Models\Risk;
 
 class IssuesController extends Controller
 {
     public function __construct(
         private readonly ControlsService $service,
     ) {}
+
+    public function create(): InertiaResponse
+    {
+        $this->authorize('create', Issue::class);
+
+        $controls = Control::query()
+            ->where('status', 'active')
+            ->orderBy('reference')
+            ->get(['id', 'reference', 'title'])
+            ->map(fn (Control $c) => ['id' => $c->id, 'reference' => $c->reference, 'title' => $c->title])
+            ->toArray();
+
+        $obligations = Obligation::query()
+            ->orderBy('reference')
+            ->get(['id', 'reference', 'title'])
+            ->map(fn (Obligation $o) => ['id' => $o->id, 'reference' => $o->reference, 'title' => $o->title])
+            ->toArray();
+
+        $risks = Risk::query()
+            ->orderBy('reference')
+            ->get(['id', 'reference', 'title'])
+            ->map(fn (Risk $r) => ['id' => $r->id, 'reference' => $r->reference, 'title' => $r->title])
+            ->toArray();
+
+        return Inertia::render('Issues/Create', [
+            'severities' => [
+                ['value' => 'low', 'label' => 'Low'],
+                ['value' => 'medium', 'label' => 'Medium'],
+                ['value' => 'high', 'label' => 'High'],
+                ['value' => 'critical', 'label' => 'Critical'],
+            ],
+            'controls' => $controls,
+            'obligations' => $obligations,
+            'risks' => $risks,
+        ]);
+    }
+
+    public function store(StoreIssueRequest $request): RedirectResponse
+    {
+        $this->authorize('create', Issue::class);
+
+        $validated = $request->validated();
+
+        $issue = Issue::create([
+            'source_type' => 'manual',
+            'source_id' => null,
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'severity' => $validated['severity'],
+            'status' => 'open',
+            'linked_control_id' => $validated['linked_control_id'] ?? null,
+            'linked_obligation_id' => $validated['linked_obligation_id'] ?? null,
+            'linked_risk_id' => $validated['linked_risk_id'] ?? null,
+            'due_date' => $validated['due_at'] ?? null,
+        ]);
+
+        return redirect()->route('issues.show', $issue->id)
+            ->with('flash', ['type' => 'success', 'message' => 'Issue raised.']);
+    }
 
     public function index(Request $request): InertiaResponse
     {
@@ -41,9 +104,14 @@ class IssuesController extends Controller
             'created_at' => $i->created_at?->toIso8601String(),
         ]);
 
+        $user = auth()->user();
+
         return Inertia::render('Issues/Index', [
             'issues' => $issues,
             'filters' => $filters,
+            'can' => [
+                'create' => $user?->can('create', Issue::class) ?? false,
+            ],
             'statuses' => [
                 ['value' => 'open', 'label' => 'Open'],
                 ['value' => 'in_progress', 'label' => 'In Progress'],

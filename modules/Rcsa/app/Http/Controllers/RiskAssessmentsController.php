@@ -104,6 +104,7 @@ class RiskAssessmentsController extends Controller
         $risks = $this->service->paginatedRisks($id, []);
 
         $scoringService = app(RiskScoringService::class);
+        $thresholdMap = $scoringService->thresholdMapForCycle($id);
 
         $risksData = $risks->through(fn ($r) => [
             'id' => $r->id,
@@ -116,7 +117,7 @@ class RiskAssessmentsController extends Controller
             'inherent_rating' => $r->inherent_rating,
             'residual_score' => $r->residual_score,
             'residual_rating' => $r->residual_rating,
-            'breaches_appetite' => $scoringService->breachesAppetite($r->id),
+            'breaches_appetite' => $scoringService->breachesAppetiteForLoadedRisk($r, $thresholdMap),
         ]);
 
         $user = auth()->user();

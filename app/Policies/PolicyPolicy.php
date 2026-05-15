@@ -39,13 +39,11 @@ class PolicyPolicy
     }
 
     /**
-     * Update permission with extra policy_owner restriction:
-     * policy_owner may only update policies in 'draft' state.
+     * Update permission with extra policy_owner restriction.
      *
-     * When a created_by column exists, add:
-     *   if ($user->hasRole('policy_owner')) {
-     *       return $policy->created_by === $user->id && $policy->state::$name === 'draft';
-     *   }
+     * policy_owner may only update their own draft policies (separation of duties).
+     * The `created_by` column records who created the policy; a NULL created_by
+     * (system-created / pre-migration rows) is treated as inaccessible to policy_owner.
      */
     public function update(User $user, Policy $policy): bool
     {
@@ -53,9 +51,10 @@ class PolicyPolicy
             return false;
         }
 
-        // policy_owner is restricted to drafts only (separation of duties).
         if ($user->hasRole('policy_owner')) {
-            return $policy->state::$name === 'draft';
+            return $policy->state::$name === 'draft'
+                && $policy->created_by !== null
+                && $policy->created_by === $user->id;
         }
 
         return true;
